@@ -47,14 +47,41 @@ else.
 ## Phases
 
 ### 0. Auth hardening (private-track, branch `auth-hardening`)
-- Server: verify HMAC signatures, with a secret and permits per client in
-  config. Keep accepting bearer tokens while the apps migrate.
-- Permits: health_sync, flare_status, uv_ingest, backup, notes_read,
-  tags_write, recap_read.
-- Wearable firmware: check the server certificate instead of `setInsecure()`.
-- Retire the iOS Shortcut docs.
-- Tests: good signatures accepted; wrong secret, altered body, stale time,
-  replayed request, and missing permit rejected.
+
+Split so that only the server work blocks tags. Details and the wire format
+are in private-track `notes/auth-hardening.md`.
+
+```
+0a  server: signed requests, per-client secrets, permits, user binding, tests  ◄── blocks tags
+    ├──► 1. Tags (Qwen) can start once 0a is merged
+0b  wearable firmware: pinned root CAs instead of setInsecure(), and signing
+    (code changed now; reflash later, when the new case is ready)
+0c  move clients over: clinic-triage → iOS → Android → wearable reflash;
+    retire the iOS Shortcut docs
+0d  stop accepting bearer tokens
+```
+
+- **0a, server.** One `@require_client("permit")` decorator replaces the
+  copy-pasted token checks, and marks the endpoint as authenticating itself, so
+  the login allowlist can no longer be forgotten.
+  - Each client in config has its own secret, its permits, and the user ids
+    it may act for.
+  - The signature covers method, path, **sorted query string**, client id,
+    timestamp, **nonce** and body hash. Without the query string, a captured
+    `?user_id=1` request could be changed to `?user_id=2`. Without a nonce, a
+    captured request could be replayed inside the 5-minute window.
+  - 401 for a bad or missing signature; 403 for a valid client without the
+    permit, or acting for a user it isn't bound to.
+  - Bearer tokens keep working, mapped to the permits they open today.
+- **Permits:** health_sync, flare_status, uv_ingest, backup, notes_read,
+  tags_write, recap_read, plus **clinicians_read** and **documents_write** for
+  clinic-triage (a caller the first notes missed).
+- **0b, wearable:** checks the server against a short list of root CAs
+  (Cloudflare's certificate authorities) and signs with a boot-id and
+  millisecond counter, since it has no clock.
+- Tests: good signatures accepted; wrong secret, altered body, altered query,
+  stale time, replayed nonce, replayed counter, missing permit and wrong user
+  rejected.
 
 ### 1. Tags
 - App: a `note_tags` table (date, note field, tag, run id, model, vocabulary
