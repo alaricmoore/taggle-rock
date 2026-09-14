@@ -1,0 +1,2 @@
+# Holds Qwen's API secret. Never commit.
+config.json
