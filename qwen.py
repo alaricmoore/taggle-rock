@@ -85,20 +85,19 @@ def check_answer(vocab, content: str) -> list:
     return [(t, vocab.category_of[t]) for t in unique]
 
 
-def ask(vocab, field: str, text: str, url: str = OLLAMA_URL, model: str = MODEL,
-        timeout: int = 600) -> list:
-    """Qwen's tags for one note, as [(tag, category)]. Raises QwenError."""
+def _chat(system: str, user: str, answer_schema: dict, url: str, model: str, timeout: int):
+    """One question to Qwen through Ollama. Returns his answer's text. Raises QwenError."""
     body = {
         "model": model,
         "stream": False,
         # Thinking off. On a made-up note (2026-09-14) it gave the same tags in
         # 20 s instead of 190 s; local-llm-bench found the same.
         "think": False,
-        "format": schema(vocab),
+        "format": answer_schema,
         "options": {"temperature": 0},
         "messages": [
-            {"role": "system", "content": system_prompt(vocab)},
-            {"role": "user", "content": f"Box: {field_label(field)}\nNote:\n{text}"},
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
         ],
     }
     req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
@@ -113,4 +112,91 @@ def ask(vocab, field: str, text: str, url: str = OLLAMA_URL, model: str = MODEL,
     except ValueError:
         raise QwenError("Ollama's reply was not JSON") from None
     message = reply.get("message") if isinstance(reply, dict) else None
-    return check_answer(vocab, (message or {}).get("content"))
+    return (message or {}).get("content")
+
+
+def ask(vocab, field: str, text: str, url: str = OLLAMA_URL, model: str = MODEL,
+        timeout: int = 600) -> list:
+    """Qwen's tags for one note, as [(tag, category)]. Raises QwenError."""
+    content = _chat(system_prompt(vocab), f"Box: {field_label(field)}\nNote:\n{text}",
+                    schema(vocab), url, model, timeout)
+    return check_answer(vocab, content)
+
+
+# ------------------------------------------------------------------
+# Drafting the vocabulary (draft_vocab.py)
+# ------------------------------------------------------------------
+
+MAX_CANDIDATES = 10
+CATEGORIES = ("body_part", "symptom", "severity", "context")
+
+
+def candidates_prompt(vocab) -> str:
+    """Instructions for suggesting vocabulary from a note. The same for every note."""
+    lines = [
+        "You help build a tag vocabulary for one person's lupus health diary.",
+        "Read the note and list the health-related words or short phrases in it:",
+        "symptoms, body parts, how bad something is, and context that might",
+        "matter (medications, activities, sleep, weather, cycle, stress, sun).",
+        "",
+        "For each one:",
+        "- phrase: copy it EXACTLY as written in the note, a few words at most.",
+        "- tag: the vocabulary tag it belongs to if one fits; otherwise a short",
+        "  new tag in lowercase plain English (no brand names unless that's the",
+        "  common word).",
+        "- category: body_part, symptom, severity or context.",
+        "",
+        "Skip anything negated (\"no rash today\"). Skip things that aren't about",
+        f"health or its context. At most {MAX_CANDIDATES}. Answer with JSON only;",
+        "an empty list if nothing fits.",
+        "",
+        "Current vocabulary (tag: words that mean it):",
+    ]
+    for tag, category in vocab.category_of.items():
+        words = ", ".join(vocab.words_for[tag])
+        lines.append(f"{tag} [{category}]: {words}" if words else f"{tag} [{category}]")
+    return "\n".join(lines)
+
+
+def candidates_schema() -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            "candidates": {
+                "type": "array", "maxItems": MAX_CANDIDATES,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "phrase": {"type": "string"},
+                        "tag": {"type": "string"},
+                        "category": {"type": "string", "enum": list(CATEGORIES)},
+                    },
+                    "required": ["phrase", "tag", "category"],
+                },
+            },
+        },
+        "required": ["candidates"],
+    }
+
+
+def ask_candidates(vocab, field: str, text: str, url: str = OLLAMA_URL, model: str = MODEL,
+                   timeout: int = 600) -> list:
+    """Qwen's vocabulary suggestions for one note: [{phrase, tag, category}].
+
+    Only the shape is checked here; draft_vocab.py decides what to keep (a
+    phrase must really be in the note, a tag must be spelled right).
+    Malformed items are dropped. Raises QwenError if the answer as a whole is.
+    """
+    content = _chat(candidates_prompt(vocab), f"Box: {field_label(field)}\nNote:\n{text}",
+                    candidates_schema(), url, model, timeout)
+    try:
+        data = json.loads(content)
+    except (TypeError, ValueError):
+        raise QwenError(f"answer is not JSON: {str(content)[:80]!r}") from None
+    items = data.get("candidates") if isinstance(data, dict) else None
+    if not isinstance(items, list):
+        raise QwenError("answer has no candidates list")
+    return [{"phrase": c["phrase"], "tag": c["tag"], "category": c["category"]}
+            for c in items[:MAX_CANDIDATES]
+            if isinstance(c, dict) and isinstance(c.get("phrase"), str)
+            and isinstance(c.get("tag"), str) and c.get("category") in CATEGORIES]
