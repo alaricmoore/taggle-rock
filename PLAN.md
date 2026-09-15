@@ -134,7 +134,20 @@ are in private-track `notes/auth-hardening.md`.
   under that tag. On four made-up notes (55 s) it found night sweats, new words
   for swelling and exertion, and some one-off noise that the default
   `--min-notes 2` hides.
-- Still to do: a tracker page listing runs with undo; the systemd user timer.
+- Nightly timer (written 2026-09-14, not yet enabled): `systemd/taggle-rock.timer`
+  runs `tag_run.py` at 04:30, after the 04:00 backup pull, and catches up after
+  sleep (Persistent=true). It waits for Ollama and only runs on mains power; a
+  skipped night is picked up by the next run. To turn it on, once a first
+  hand run has been spot-checked:
+
+  ```
+  cp systemd/taggle-rock.service systemd/taggle-rock.timer ~/.config/systemd/user/
+  systemctl --user daemon-reload
+  systemctl --user enable --now taggle-rock.timer
+  systemctl --user list-timers taggle-rock.timer      when it runs next
+  journalctl --user -u taggle-rock                    what the last run did
+  ```
+- Tag runs page on the tracker: `/tags/runs` lists runs with undo.
 - Client setup (done 2026-09-14): `config.json` here holds server, client_id,
   secret and user_id, and is gitignored. Sign with private-track's
   `api_signing.py`. Send a named User-Agent (e.g. `taggle-rock/0.1`):

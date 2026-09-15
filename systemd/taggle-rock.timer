@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly taggle-rock run (catches up if the laptop was asleep or off)
+
+[Timer]
+# 04:30, after the 04:00 Pi backup pull. If the laptop was asleep or off then,
+# Persistent=true runs it shortly after the next wake or login.
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

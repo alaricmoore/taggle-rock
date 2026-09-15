@@ -1,0 +1,16 @@
+[Unit]
+Description=taggle-rock: tag new and edited tracker notes with Qwen (on this laptop)
+Documentation=man:taggle-rock(1)
+After=network-online.target ollama.service
+Wants=ollama.service
+# A full run keeps the model busy for minutes and heats the laptop, so only
+# on mains power. A skipped night is picked up by the next run: it tags
+# everything new or edited, not just today's.
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/taggle-rock
+ExecStart=/usr/bin/python3 tag_run.py
+# Output (dates, boxes and tag counts, never note text) goes to the journal:
+#   journalctl --user -u taggle-rock
