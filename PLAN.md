@@ -95,6 +95,31 @@ are in private-track `notes/auth-hardening.md`.
   score means nothing.
 - Laptop: a systemd user timer with Persistent=true, so a missed run happens
   at the next wake.
+- Tracker side (private-track branch `tags`, done 2026-09-14): note fields in
+  one list, tag tables, the signed notes/tags/undo API, and search by tag.
+  Details: private-track `notes/tags.md`.
+- Laptop side (done 2026-09-14): `tag_run.py` with `vocab.py`, `qwen.py`,
+  `tracker.py`, and 34 tests (`python3 -m unittest discover -s tests -t .`).
+  Runs on the system python3 (needs only PyYAML, already installed).
+
+  ```
+  python3 tag_run.py --dry-run --limit 5 --show   try it: print tags, send nothing
+  python3 tag_run.py --limit 20                   a first real batch to spot-check
+  python3 tag_run.py                              everything new or edited
+  python3 tag_run.py undo run-YYYYMMDD-HHMMSS     take a run back out
+  ```
+
+  **Before a real run, the Pi must run the `tags` branch**; `auth-hardening`
+  has no `/api/notes`.
+
+  Measured on made-up notes (2026-09-14), thinking off, 38-tag vocabulary:
+  the first note 12 s (reading the instructions once), then 2-4 s each, because
+  Ollama reuses the unchanged instructions. About 20-30 minutes for ~430 notes the
+  first time; seconds per night after. Correct on a negation ("no rash today":
+  no tags), a note with nothing to tag, and synonyms ("glands", "wiped out").
+- Still to do: Qwen drafts vocabulary candidates from the real notes (on the
+  laptop only) for you to edit; a tracker page listing runs with undo; the
+  systemd user timer.
 - Client setup (done 2026-09-14): `config.json` here holds server, client_id,
   secret and user_id, and is gitignored. Sign with private-track's
   `api_signing.py`. Send a named User-Agent (e.g. `taggle-rock/0.1`):
