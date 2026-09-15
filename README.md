@@ -173,3 +173,7 @@ taggle-rock/
 Gitignored and never committed: `config.json` (the secret), `runs/` (run
 logs and grades: dates, sections and tags), and `drafts/` (vocabulary drafts,
 which quote words from your notes).
+
+## License
+
+MIT: see [LICENSE](LICENSE). Point it at whatever notes you like.
