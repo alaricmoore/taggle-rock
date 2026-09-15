@@ -148,6 +148,13 @@ are in private-track `notes/auth-hardening.md`.
   journalctl --user -u taggle-rock                    what the last run did
   ```
 - Tag runs page on the tracker: `/tags/runs` lists runs with undo.
+- **The laptop reaches the Pi over Tailscale** (`server` is
+  `http://your-server-name:5000`), not the public address. Cloudflare ends HTTPS at
+  its edge and can read what passes through, so reading every note that way
+  would pass them all through Cloudflare. Tailscale is encrypted from the laptop
+  to the Pi. Checked live 2026-09-14 over Tailscale: 403 for Qwen on an
+  endpoint he has no permit for, 401 for a wrong secret and for a replay, and
+  every reply straight from the app, not Cloudflare.
 - Client setup (done 2026-09-14): `config.json` here holds server, client_id,
   secret and user_id, and is gitignored. Sign with private-track's
   `api_signing.py`. Send a named User-Agent (e.g. `taggle-rock/0.1`):
