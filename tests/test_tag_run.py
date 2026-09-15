@@ -91,6 +91,44 @@ class TestWhatGetsAsked(RunTest):
         self.run_tags(tracker, ask=lambda v, f, t: asked.append(t) or [])
         self.assertEqual(asked, [notes[0]["text"], notes[2]["text"]])
 
+    def test_retag_asks_about_tagged_notes_too(self):
+        notes = [make_note(1), make_note(2, tagged=True), make_note(3, tagged=True, edited=True)]
+        asked = []
+        self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [], retag=True)
+        self.assertEqual(asked, [n["text"] for n in notes])
+
+    def test_retag_carries_on_after_notes_done_with_this_vocabulary(self):
+        notes = [make_note(i, tagged=True) for i in range(1, 7)]
+        os.makedirs(self.log_dir)
+        earlier = [
+            {"date": notes[0]["date"], "field": "notes", "sha256": notes[0]["sha256"],
+             "vocab": VOCAB.version, "result": "tagged"},                       # done: skipped
+            {"date": notes[1]["date"], "field": "notes", "sha256": notes[1]["sha256"],
+             "vocab": "v0-older", "result": "tagged"},                          # older vocabulary
+            {"date": notes[2]["date"], "field": "notes", "sha256": "f" * 64,
+             "vocab": VOCAB.version, "result": "tagged"},                       # edited since
+            {"date": notes[3]["date"], "field": "notes", "sha256": notes[3]["sha256"],
+             "vocab": VOCAB.version, "result": "stale"},                        # never stored
+            {"date": notes[4]["date"], "field": "notes", "result": "tagged"},  # old log format
+        ]
+        with open(os.path.join(self.log_dir, "run-earlier.jsonl"), "w") as f:
+            f.write("\n".join(json.dumps(e) for e in earlier) + '\n{"cut off')
+        with open(os.path.join(self.log_dir, "run-earlier.grades.jsonl"), "w") as f:
+            f.write(json.dumps({"date": notes[5]["date"], "field": "notes", "tags": {}}) + "\n")
+        asked = []
+        self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [], retag=True)
+        self.assertEqual(asked, [n["text"] for n in notes[1:]])
+        self.assertIn("5 note(s) to tag", self.lines[0])
+        self.assertIn("retag: 1 already done with this vocabulary", self.lines[0])
+
+    def test_the_log_records_hash_and_vocabulary_for_retag(self):
+        note = make_note(1)
+        self.run_tags(FakeTracker([note]))
+        entry = self.log_entries()[0]
+        self.assertEqual((entry["sha256"], entry["vocab"]), (note["sha256"], VOCAB.version))
+        self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version),
+                         {(note["date"], "notes", note["sha256"])})
+
     def test_limit_and_since(self):
         tracker = FakeTracker([make_note(i) for i in range(1, 11)])
         summary = self.run_tags(tracker, limit=4, since="2026-01-01")

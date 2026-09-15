@@ -106,6 +106,8 @@ are in private-track `notes/auth-hardening.md`.
   python3 tag_run.py --dry-run --limit 5 --show   try it: print tags, send nothing
   python3 tag_run.py --limit 20                   a first real batch to spot-check
   python3 tag_run.py                              everything new or edited
+  python3 tag_run.py --retag                      after a vocab.yaml change: every note not yet
+                                                  tagged with it (old tags stay until replaced)
   python3 tag_run.py undo run-YYYYMMDD-HHMMSS     take a run back out
   ```
 
