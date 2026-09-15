@@ -1,2 +1,6 @@
 # Holds Qwen's API secret. Never commit.
 config.json
+
+# Run logs: dates, boxes and tags from your notes. They stay on this laptop.
+runs/
+__pycache__/
