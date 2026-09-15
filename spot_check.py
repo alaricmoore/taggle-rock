@@ -4,6 +4,9 @@ Grade a sample of a tag run by hand, to measure how right Qwen's tags are.
     python3 spot_check.py                     grade 30 random notes from the latest run
     python3 spot_check.py --sample 50         grade more (the first 30 are kept)
     python3 spot_check.py --run RUN_ID        grade a particular run
+    python3 spot_check.py --run NEW_RUN --same-notes-as OLD_RUN
+                                              grade the notes you graded for OLD_RUN, as
+                                              NEW_RUN tagged them: a fair before/after
     python3 spot_check.py summary             the numbers so far: counts only, no note text
 
 Run it in its own terminal window, not with "!" inside Claude Code: it shows
@@ -112,20 +115,44 @@ def grade_note(row: dict, text: str, where: str, ask_input, out) -> dict:
     return {"date": row["date"], "field": row["field"], "tags": marks, "missing": missing}
 
 
+def same_notes(log_rows: list, earlier_grades: list, out=print) -> list:
+    """This run's rows for the notes graded in an earlier run, in the order
+    they were graded there. A note this run didn't tag is left out and said."""
+    rows = {(r["date"], r["field"]): r for r in log_rows if r.get("result") == "tagged"}
+    picked = []
+    for g in earlier_grades:
+        row = rows.get((g["date"], g["field"]))
+        if row:
+            picked.append(row)
+        else:
+            out(f"{g['date']} {qwen.field_label(g['field'])}: not tagged in this run, left out")
+    return picked
+
+
 def grade(tracker, vocab, run_id: str, size: int = DEFAULT_SAMPLE, log_dir: str = RUN_DIR,
-          ask_input=input, out=print) -> list:
-    """Grade until `size` notes of the sample are done, or you stop. Returns all grades."""
+          ask_input=input, out=print, same_notes_as: str = None) -> list:
+    """Grade until `size` notes of the sample are done, or you stop. Returns all grades.
+
+    With `same_notes_as`, the sample is the notes graded for that earlier run
+    instead, and `size` is how many of them there are."""
     log_path = os.path.join(log_dir, f"{run_id}.jsonl")
     grades_path = os.path.join(log_dir, f"{run_id}.grades.jsonl")
     log_rows = read_jsonl(log_path)
+    if same_notes_as:
+        earlier = read_jsonl(os.path.join(log_dir, f"{same_notes_as}.grades.jsonl"))
+        candidates = same_notes(log_rows, earlier, out)
+        size = len(candidates)
+    else:
+        candidates = sampled(log_rows, seed=run_id)
     grades = read_jsonl(grades_path) if os.path.exists(grades_path) else []
     done = {(g["date"], g["field"]) for g in grades}
     notes = {(n["date"], n["field"]): n for n in tracker.notes()}
-    out(f"{run_id}: {len(done)} of {size} graded so far")
+    out(f"{run_id}: {len(done)} of {size} graded so far"
+        + (f" (the notes graded for {same_notes_as})" if same_notes_as else ""))
 
     with _private_append(grades_path) as f:
         try:
-            for row in sampled(log_rows, seed=run_id):
+            for row in candidates:
                 if len(grades) >= size:
                     break
                 key = (row["date"], row["field"])
@@ -196,6 +223,8 @@ def main(argv=None) -> int:
     parser.add_argument("command", nargs="?", default="grade", choices=["grade", "summary"])
     parser.add_argument("--run", help="the run to grade (default: the latest one with notes)")
     parser.add_argument("--sample", type=int, default=DEFAULT_SAMPLE, help="how many notes to grade")
+    parser.add_argument("--same-notes-as", metavar="RUN_ID",
+                        help="grade the notes graded for that earlier run (ignores --sample)")
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--vocab", default="vocab.yaml")
     args = parser.parse_args(argv)
@@ -208,7 +237,10 @@ def main(argv=None) -> int:
             grades = read_jsonl(grades_path) if os.path.exists(grades_path) else []
             print(f"{run_id}\n" + summarize(vocab, read_jsonl(os.path.join(RUN_DIR, f"{run_id}.jsonl")), grades))
             return 0
-        grade(Tracker.from_config(args.config), vocab, run_id, size=args.sample)
+        if args.same_notes_as and args.same_notes_as == run_id:
+            parser.error("--same-notes-as needs a different run than the one being graded")
+        grade(Tracker.from_config(args.config), vocab, run_id, size=args.sample,
+              same_notes_as=args.same_notes_as)
         return 0
     except (TrackerError, vocab_module.VocabError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)

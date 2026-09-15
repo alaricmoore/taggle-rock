@@ -143,6 +143,22 @@ class SpotCheckTest(unittest.TestCase):
         self.assertEqual([g["date"] for g in grades], self.order()[1:3])
         self.assertTrue(any("skipped, edited or deleted" in line for line in self.lines))
 
+    def test_same_notes_as_grades_the_earlier_runs_notes_with_the_new_tags(self):
+        # The earlier run's grades: notes 3 then 1, in that order.
+        with open(os.path.join(self.dir, "run-old.grades.jsonl"), "w") as f:
+            for date in ("2026-01-03", "2026-01-01"):
+                f.write(json.dumps({"date": date, "field": "notes", "tags": {}, "missing": ["x"]}) + "\n")
+        # The new run tagged note 1 differently and never tagged note 3.
+        new = [make_note(1, ["joints"]), make_note(2, ["pain"])]
+        self.write_log("run-new", new)
+        grades = spot_check.grade(FakeTracker(self.notes), VOCAB, "run-new", size=30, log_dir=self.dir,
+                                  ask_input=typed("y", ""), out=self.lines.append,
+                                  same_notes_as="run-old")
+        self.assertEqual(grades, [{"date": "2026-01-01", "field": "notes",
+                                   "tags": {"joints": True}, "missing": []}])
+        self.assertIn("2026-01-03 general: not tagged in this run, left out", self.lines)
+        self.assertIn("run-new: 0 of 1 graded so far (the notes graded for run-old)", self.lines)
+
     def test_summary_counts_only(self):
         log_rows = spot_check.read_jsonl(os.path.join(self.dir, "run-test.jsonl"))
         grades = [
