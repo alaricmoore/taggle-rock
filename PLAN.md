@@ -173,6 +173,35 @@ are in private-track `notes/auth-hardening.md`.
 - Port the auth and tags work to sardine-track-public (scratch-folder method).
 - Then the README and developer docs for both repos, then the cycle model.
 
+### Later: notes for future us (2026-09-14, while Qwen ran the first draft)
+- **Anonymize before anything goes public.** Real names and addresses become
+  placeholders ("your-server-name:5000", "app.example.com"): the Pi's
+  Tailscale name `your-server-name`, `app.example.com`, Tailscale 100.x
+  addresses, `/home/you` paths (e.g. the systemd units here), account and
+  team names. Find them with:
+  `git grep -n -I -E "your-server-name|sardinetracker\.com|duckdns|100\.[0-9]+\.[0-9]+\.[0-9]+|/home/you|your-account-name"`
+  in each repo. Private-track reaches the public repo by the scratch-folder
+  method, so scrub there, not in private history.
+  First count (2026-09-14, tracked files): private-track mostly
+  runbook-site.md (17) and notes/discoverability-checklist.md (16), plus a few
+  in README, help, notes and one route; uv-wearable mostly notes/last_error.txt
+  (36) and REMOTE_ACCESS.md (7), plus firmware comments; taggle-rock only the
+  systemd unit path and this file; sardine-track-public mostly site/. Careful
+  there: `sardinetracker.com` is the public project site's own domain and is
+  meant to stay. What to scrub is the private instance (`app.` subdomain,
+  Tailscale names and addresses, home paths).
+- **Give taggle-rock a GitHub repo** once it's finished (private first, public
+  later, after the scrub). config.json, runs/ and drafts/ are already gitignored.
+- **Write a public walkthrough of the local Qwen setup**: Ollama as a user
+  service, Vulkan on the Radeon 740M (`OLLAMA_VULKAN=1`), 6 threads and why,
+  the qwen-local Modelfile (16K context, the "you are running locally" system
+  prompt), thinking off, prompt reuse, and the measured speeds. Sources:
+  ~/projects/local-llm-bench README and modelfiles, ~/.config/systemd/user/ollama.service.
+- **Rework the README for private-track and sardine-track-public.** It's too
+  long for anyone to read in full. Short front page: what it is, who it's for,
+  a map, quick start; everything else moves to linked docs. Includes
+  correcting the documents tree for the auth-hardening and tags files.
+
 ## Open questions for later
 - Should Qwen read notes over the new signed API or the existing read-only SSH
   bridge? The API means one auth system; the bridge already exists.
