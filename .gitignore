@@ -4,3 +4,6 @@ config.json
 # Run logs: dates, boxes and tags from your notes. They stay on this laptop.
 runs/
 __pycache__/
+
+# Vocabulary drafts and their cache: words quoted from your notes.
+drafts/
