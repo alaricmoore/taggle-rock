@@ -117,9 +117,24 @@ are in private-track `notes/auth-hardening.md`.
   Ollama reuses the unchanged instructions. About 20-30 minutes for ~430 notes the
   first time; seconds per night after. Correct on a negation ("no rash today":
   no tags), a note with nothing to tag, and synonyms ("glands", "wiped out").
-- Still to do: Qwen drafts vocabulary candidates from the real notes (on the
-  laptop only) for you to edit; a tracker page listing runs with undo; the
-  systemd user timer.
+- Vocabulary drafting (done 2026-09-14): `draft_vocab.py` has Qwen read every
+  note on the laptop and suggest phrases and tags, then writes
+  `drafts/vocab_draft.yaml` (gitignored, owner-only, never printed) for you to
+  edit and copy into vocab.yaml. vocab.yaml itself is never changed.
+
+  ```
+  python3 draft_vocab.py --limit 50      try it on 50 notes
+  python3 draft_vocab.py                 all notes (answers cached; Ctrl-C and rerun to carry on)
+  python3 draft_vocab.py --min-notes 3   only what came up in 3+ notes
+  ```
+
+  Suggestions are checked by rules, not trusted: a phrase that isn't really
+  in the note is thrown out, known words are skipped, badly spelled tags are
+  dropped, and a "new" tag that's already a word for an existing tag goes
+  under that tag. On four made-up notes (55 s) it found night sweats, new words
+  for swelling and exertion, and some one-off noise that the default
+  `--min-notes 2` hides.
+- Still to do: a tracker page listing runs with undo; the systemd user timer.
 - Client setup (done 2026-09-14): `config.json` here holds server, client_id,
   secret and user_id, and is gitignored. Sign with private-track's
   `api_signing.py`. Send a named User-Agent (e.g. `taggle-rock/0.1`):
