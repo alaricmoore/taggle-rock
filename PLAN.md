@@ -95,6 +95,12 @@ are in private-track `notes/auth-hardening.md`.
   score means nothing.
 - Laptop: a systemd user timer with Persistent=true, so a missed run happens
   at the next wake.
+- Client setup (done 2026-09-14): `config.json` here holds server, client_id,
+  secret and user_id, and is gitignored. Sign with private-track's
+  `api_signing.py`. Send a named User-Agent (e.g. `taggle-rock/0.1`):
+  Cloudflare blocks Python's default one with error 1010. Checked live: a
+  signed request is refused 403 on an endpoint Qwen has no permit for, and a
+  wrong secret or a replay is refused 401.
 
 ### 2. Weekly recap
 - SQL compares this week with the previous four: logged days, flare days,
