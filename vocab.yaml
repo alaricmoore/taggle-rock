@@ -1,0 +1,64 @@
+# taggle-rock vocabulary. You own this file; Qwen may only use tags listed here.
+#
+# Under each category, one canonical tag per line, then the words that mean
+# it. Search shows the canonical tag, so "glands", "nodes" and "neck lumps"
+# all come up when you search "lymph nodes".
+#
+# Tag spelling (the tracker refuses anything else): lowercase ASCII letters
+# and digits, with spaces, hyphens, slashes or apostrophes inside, 1-48
+# characters. So "sjogren's", not "Sjögren's".
+#
+# Bump `version` when a change alters what an old tag meant (renaming,
+# merging, removing). Adding words or new tags doesn't need it. Every run
+# records the version it used, so a bad vocabulary run can be undone.
+#
+# This is a starting skeleton, not a finished list. The next step is for Qwen
+# to draft candidates from the words in your own notes, and for you to edit.
+
+version: 1
+
+body_part:
+  lymph nodes: [glands, nodes, neck lumps, swollen glands]
+  joints: [knuckles, wrists, knees, fingers, ankles, elbows]
+  skin: [face, cheeks, scalp, arms, chest]
+  mouth: [gums, tongue, lips, palate]
+  eyes: [eye, vision]
+  chest: [ribs, sternum]
+
+symptom:
+  fatigue: [tired, exhausted, wiped out, no energy]
+  joint pain: [achy joints, arthralgia, sore joints]
+  swelling: [swollen, puffy, inflamed]
+  rash: [malar rash, butterfly rash, hives, spots]
+  mouth ulcers: [mouth sores, canker sores, ulcers]
+  headache: [migraine, head pain]
+  brain fog: [foggy, word finding, forgot words, cant think]
+  fever: [temperature, feverish, chills]
+  shortness of breath: [air hunger, breathless, winded, cant breathe]
+  hair loss: [shedding, hair falling out]
+  nausea: [queasy, sick to my stomach]
+  dizziness: [dizzy, lightheaded, vertigo]
+  fast heart rate: [tachycardia, racing heart, heart pounding]
+  livedo: [mottled skin, lacy rash, livedo reticularis]
+  morning stiffness: [stiff in the morning, stiff]
+  chest pain: [pleuritic pain, hurts to breathe]
+  dry eyes: [gritty eyes]
+  raynaud's: [white fingers, blue fingers, cold fingers]
+
+severity:
+  mild: [a little, slight, minor]
+  moderate: [noticeable, bothersome]
+  severe: [awful, worst, unbearable, terrible]
+  better: [improving, improved, easing]
+  worse: [worsening, getting worse, flaring]
+
+context:
+  sun exposure: [sun, outside, sunburn, uv]
+  menstruation: [period, cramps, cycle]
+  steroids: [prednisone, pred, medrol, steroid]
+  hydroxychloroquine: [hcq, plaquenil]
+  stress: [stressed, anxious, overwhelmed]
+  poor sleep: [didnt sleep, insomnia, up all night, sleepwalking]
+  infection: [cold, flu, covid, sick]
+  exertion: [overdid it, long walk, work shift]
+  weather: [cold weather, heat, humid, storm]
