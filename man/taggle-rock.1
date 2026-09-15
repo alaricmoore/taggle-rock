@@ -1,0 +1,258 @@
+.\" taggle-rock(1): the manual page.
+.\" Read it without installing:   man -l man/taggle-rock.1
+.\" Install for your user:        ln -s "$PWD/man/taggle-rock.1" ~/.local/share/man/man1/
+.\" tests/test_man_page.py checks every option in the scripts is listed here.
+.TH TAGGLE-ROCK 1 2026-09-15 "taggle-rock 0.1" "User Commands"
+.SH NAME
+taggle-rock \- tag private free-text notes with a local language model
+.SH SYNOPSIS
+.SY "python3 tag_run.py"
+.OP \-\-limit N
+.OP \-\-since YYYY\-MM\-DD
+.OP \-\-dry\-run
+.OP \-\-show
+.OP \-\-config FILE
+.OP \-\-vocab FILE
+.YS
+.SY "python3 tag_run.py undo"
+.I RUN_ID
+.YS
+.SY "python3 draft_vocab.py"
+.OP \-\-limit N
+.OP \-\-min\-notes N
+.OP \-\-config FILE
+.OP \-\-vocab FILE
+.YS
+.SY "python3 spot_check.py"
+.RB [ grade | summary ]
+.OP \-\-run RUN_ID
+.OP \-\-sample N
+.OP \-\-same\-notes\-as RUN_ID
+.OP \-\-config FILE
+.OP \-\-vocab FILE
+.YS
+.SH DESCRIPTION
+.B taggle-rock
+reads free-text notes, asks a language model running on this computer
+which tags from your vocabulary fit each one, and sends the tags back to
+the tracker, so a search for
+.I joint pain
+finds a note that only said
+.IR "ankles killing me today" .
+.PP
+Four promises hold throughout:
+.IP \(bu 3
+The note text is the record. It is only ever read, never changed.
+.IP \(bu
+Tags are derived from the text. Every tag records the run that wrote it,
+so a bad run can be taken back out in one go.
+.IP \(bu
+The model is not trusted. Its answer is held to a JSON schema of your
+vocabulary, then checked again by rules. Its confidence is never asked
+for, because it means nothing.
+.IP \(bu
+Notes go only to the model on this computer (Ollama on localhost).
+Nothing here prints or saves note text, except where you grade notes by
+hand in
+.BR spot_check.py .
+.PP
+The expensive fuzzy reading happens once, in a batch, and later searches
+use the stored tags cheaply.
+.SH COMMANDS
+.TP
+.B tag_run.py
+Tag every note that is new or edited since it was last tagged. Tags go to
+the tracker in batches of 20, so stopping with Ctrl\-C keeps what was done.
+Prints a run id, and writes
+.IR runs/RUN_ID.jsonl .
+.TP
+.BI "tag_run.py undo " RUN_ID
+Remove every tag one run wrote.
+.TP
+.B draft_vocab.py
+Have the model read every note and suggest words and tags, then write
+.I drafts/vocab_draft.yaml
+for you to read, edit and copy from.
+.I vocab.yaml
+itself is never changed. Answers are cached per note, so Ctrl\-C and
+running it again carries on. Suggestions are checked: a phrase that is not
+really in the note is thrown out, known words are skipped, and a tag the
+tracker would refuse is dropped.
+.TP
+.BR "spot_check.py " [ grade ]
+Show you a sample of a run's notes with their tags, in your terminal, and
+record whether each tag is right and what is missing. The sample is fixed
+for a run, so q and running it again carries on.
+.B Run it in its own terminal window,
+not with
+.B !
+inside Claude Code: it shows note text.
+.TP
+.B spot_check.py summary
+Print the run's totals and the grading so far: tags marked right, notes
+missing something, and whether each missing item was in the vocabulary
+(the model missed it) or not (a vocabulary gap). Counts only, so it is
+safe to share.
+.SH OPTIONS
+.SS tag_run.py
+.TP
+.BI \-\-limit " N"
+Tag at most
+.I N
+notes.
+.TP
+.BI \-\-since " YYYY\-MM\-DD"
+Only notes from that date on.
+.TP
+.B \-\-dry\-run
+Ask the model but send nothing and write no log.
+.TP
+.B \-\-show
+Print each note's tags (never its text).
+.SS draft_vocab.py
+.TP
+.BI \-\-limit " N"
+Read at most
+.I N
+notes.
+.TP
+.BI \-\-min\-notes " N"
+List a suggested tag only if it came up in
+.I N
+or more notes. Default 2, which hides one-off noise.
+.SS spot_check.py
+.TP
+.BI \-\-run " RUN_ID"
+The run to grade. Default: the newest run log with notes in it.
+.TP
+.BI \-\-sample " N"
+How many notes to grade. Default 30. A bigger number keeps the notes
+already graded and adds more.
+.TP
+.BI \-\-same\-notes\-as " RUN_ID"
+Grade the notes that were graded for an earlier run, with this run's tags:
+a fair before and after. Ignores
+.BR \-\-sample .
+.SS All commands
+.TP
+.BI \-\-config " FILE"
+The tracker connection. Default
+.IR config.json .
+.TP
+.BI \-\-vocab " FILE"
+The vocabulary. Default
+.IR vocab.yaml .
+.SH WORKFLOW
+.nf
+.RS
+draft_vocab.py ──► you edit vocab.yaml ──► tag_run.py
+      ▲                                        │
+      │                                        ▼
+      └──── vocabulary gaps ◄──── spot_check.py, then summary
+.RE
+.fi
+.PP
+Grade the same notes after each change with
+.BR \-\-same\-notes\-as ,
+so the numbers compare.
+.SH VOCABULARY
+.I vocab.yaml
+has a
+.B version
+and four categories:
+.BR body_part ,
+.BR symptom ,
+.BR severity " and"
+.BR context .
+Under each, one tag per line, followed by the words that mean it:
+.PP
+.EX
+version: 1
+body_part:
+  joints: [knuckles, wrists, knees, ankles]
+symptom:
+  fatigue: [tired, wiped out, exhausted]
+.EE
+.PP
+A tag is lowercase ASCII letters and digits, with spaces, hyphens,
+slashes or apostrophes inside, 1 to 48 characters. Bump
+.B version
+when a change alters what an old tag meant; adding words or tags does
+not need it.
+.SH FILES
+.TP
+.I config.json
+server, client_id, secret and user_id for the tracker. Gitignored.
+.TP
+.I vocab.yaml
+The vocabulary. Yours to edit.
+.TP
+.I runs/RUN_ID.jsonl
+One line per note: date, box, tags and the tracker's result. No note text.
+Readable only by you.
+.TP
+.I runs/RUN_ID.grades.jsonl
+Your spot\-check marks and what you typed as missing. No note text.
+Readable only by you.
+.TP
+.I drafts/vocab_draft.yaml\fR, \fPdrafts/cache.jsonl
+The vocabulary draft and the model's cached answers. They quote words
+from your notes. Readable only by you.
+.TP
+.I systemd/taggle-rock.service\fR, \fPsystemd/taggle-rock.timer
+A nightly run at 04:30 that catches up after sleep and only runs on mains
+power. Copy to
+.I ~/.config/systemd/user/
+to use.
+.SH ENVIRONMENT
+The model is
+.B qwen-local
+through Ollama at
+.IR http://localhost:11434 .
+Both are set in
+.IR qwen.py .
+Ollama must be running:
+.BR "systemctl \-\-user start ollama" .
+.SH EXIT STATUS
+.TP
+.B 0
+Done, including a run stopped with Ctrl\-C or q.
+.TP
+.B 1
+The tracker, the vocabulary or a file could not be read or reached. The
+message says which.
+.TP
+.B 2
+The command line was wrong.
+.SH EXAMPLES
+Try tagging on five notes, sending nothing:
+.PP
+.EX
+python3 tag_run.py \-\-dry\-run \-\-limit 5 \-\-show
+.EE
+.PP
+Before and after a vocabulary change:
+.PP
+.EX
+python3 spot_check.py \-\-run run\-20260915\-093312
+python3 tag_run.py undo run\-20260915\-093312
+python3 tag_run.py
+python3 spot_check.py \-\-run NEW_RUN_ID \-\-same\-notes\-as run\-20260915\-093312
+python3 spot_check.py summary \-\-run NEW_RUN_ID
+.EE
+.SH BUGS
+A changed vocabulary does not make
+.B tag_run.py
+tag unchanged notes again; it only looks for new or edited notes. Undo the
+old run first, which leaves those notes without tags until the new run
+reaches them.
+.PP
+A run log does not know if a later run tagged the same note again, so
+grade a run before tagging again.
+.SH SEE ALSO
+.BR ollama (1),
+.BR systemctl (1),
+.BR journalctl (1)
+.PP
+.I PLAN.md
+in the taggle-rock directory: the design, decisions and measured speeds.
