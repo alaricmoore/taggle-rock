@@ -53,9 +53,11 @@ vocabulary, then checked again by rules. Its confidence is never asked
 for, because it means nothing.
 .IP \(bu
 Notes go only to the model on this computer (Ollama on localhost).
-Nothing here prints or saves note text, except where you grade notes by
-hand in
-.BR spot_check.py .
+Run logs hold dates, boxes and tags, never note text. Note text is shown
+only when you grade notes by hand in
+.BR spot_check.py ,
+and vocabulary drafts quote short phrases; both stay in files only you can
+read.
 .PP
 The expensive fuzzy reading happens once, in a batch, and later searches
 use the stored tags cheaply.
