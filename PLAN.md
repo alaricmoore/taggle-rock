@@ -134,6 +134,21 @@ are in private-track `notes/auth-hardening.md`.
   under that tag. On four made-up notes (55 s) it found night sweats, new words
   for swelling and exertion, and some one-off noise that the default
   `--min-notes 2` hides.
+- First real run (2026-09-15, `run-20260915-093312`): 1,322 notes from 12
+  boxes, 0 failed, 349 (26%) with no tags, 2.2 tags per note, about 54 minutes.
+  That says nothing crashed, not that the tags are right; the spot-check
+  below measures that.
+- Spot-check (2026-09-15): `spot_check.py` shows you a random sample of a
+  run's notes with their tags, in your own terminal, and records right/wrong
+  per tag and anything missing. Run it in its own window, not with `!` in
+  Claude Code, because it shows note text. The summary is counts only, so it
+  can be shared, and its numbers are the ones for the public README.
+
+  ```
+  python3 spot_check.py                  grade 30 notes from the latest run (q stops, rerun resumes)
+  python3 spot_check.py --sample 50      grade more; the first 30 are kept
+  python3 spot_check.py summary          the numbers: run totals, % right, missed vs vocabulary gap
+  ```
 - Nightly timer (written 2026-09-14, not yet enabled): `systemd/taggle-rock.timer`
   runs `tag_run.py` at 04:30, after the 04:00 backup pull, and catches up after
   sleep (Persistent=true). It waits for Ollama and only runs on mains power; a
