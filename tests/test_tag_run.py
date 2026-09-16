@@ -188,6 +188,31 @@ class TestWhatGetsAsked(RunTest):
         self.assertEqual(tracker.since, "2026-01-01")
 
 
+    def test_a_skipped_box_is_never_asked_about(self):
+        keep = make_note(2)
+        keep["field"] = "cycle_notes"
+        asked = []
+        self.run_tags(FakeTracker([make_note(1), keep, make_note(3)]),
+                      ask=lambda v, f, t: asked.append(f) or [], skip_fields=("notes",))
+        self.assertEqual(asked, ["cycle_notes"])
+        self.assertIn("2 note(s) in notes skipped", self.lines[0])
+
+
+class ClearTest(RunTest):
+    def test_clear_empties_the_tags_of_those_boxes_and_logs_it(self):
+        keep = make_note(2)
+        keep["field"] = "cycle_notes"
+        tracker = FakeTracker([make_note(1), keep, make_note(3)])
+        summary = tag_run.clear(tracker, VOCAB, ("notes",), log_dir=self.log_dir,
+                                out=self.lines.append, run_id="run-test")
+        sent = tracker.posts[0]["notes"]
+        self.assertEqual([n["field"] for n in sent], ["notes", "notes"])
+        self.assertTrue(all(n["tags"] == [] for n in sent))
+        self.assertEqual((summary["notes"], summary["cleared"]), (2, 2))
+        entries = self.log_entries()
+        self.assertTrue(all(e["cleared"] and e["tags"] == [] for e in entries))
+
+
 class TestSending(RunTest):
     def test_batches_of_twenty_under_one_run(self):
         tracker = FakeTracker([make_note(i) for i in range(1, 46)])
@@ -271,6 +296,16 @@ class TestMain(unittest.TestCase):
             self.assertEqual(tag_run.main(["undo", "run-20260914-210000"]), 0)
         fake.undo.assert_called_once_with("run-20260914-210000")
         self.assertIn("removed tags from 7 note(s)", printed.getvalue())
+
+    def test_clear_refuses_without_yes(self):
+        fake = mock.Mock()
+        fake.skip_fields = ("notes",)
+        with mock.patch("tag_run.Tracker.from_config", return_value=fake), \
+                mock.patch("sys.stderr", new_callable=io.StringIO) as err, \
+                self.assertRaises(SystemExit):
+            tag_run.main(["clear", "--vocab", "vocab.example.yaml"])
+        self.assertIn("--yes", err.getvalue())
+        fake.post_tags.assert_not_called()
 
     def test_a_tracker_error_is_a_clean_exit_1(self):
         with mock.patch("tag_run.Tracker.from_config", side_effect=TrackerError("config.json is missing ['secret']")), \

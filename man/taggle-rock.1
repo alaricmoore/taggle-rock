@@ -81,6 +81,16 @@ Prints a run id, and writes
 .BI "tag_run.py undo " RUN_ID
 Remove every tag one run wrote.
 .TP
+.B "tag_run.py clear \-\-yes"
+Give every note in the boxes named by
+.I skip_fields
+an empty set of tags, so what they had leaves search. A box with no subject
+of its own collects whatever the model can reach, and those tags are noise.
+.B This is not an undo:
+the tags are replaced by nothing and cannot be brought back, which is why
+.B \-\-yes
+is required.
+.TP
 .B draft_vocab.py
 Have the model read every note and suggest words and tags, then write
 .I drafts/vocab_draft.yaml
@@ -254,7 +264,10 @@ not need it.
 .SH FILES
 .TP
 .I config.json
-server, client_id, secret and user_id for the tracker. Gitignored.
+server, client_id, secret and user_id for the tracker, and optionally
+.IR skip_fields ,
+a list of boxes never to tag (for example a general box with no subject of
+its own). Gitignored.
 .TP
 .I vocab.yaml
 Your vocabulary. Gitignored and readable only by you: it fills up with

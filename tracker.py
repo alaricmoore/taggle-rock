@@ -21,12 +21,16 @@ class TrackerError(Exception):
 
 
 class Tracker:
-    def __init__(self, server: str, client_id: str, secret: str, user_id: int, timeout: int = 60):
+    def __init__(self, server: str, client_id: str, secret: str, user_id: int, timeout: int = 60,
+                 skip_fields=()):
         self.server = server.rstrip("/")
         self.client_id = client_id
         self.secret = secret
         self.user_id = user_id
         self.timeout = timeout
+        # Boxes never worth tagging: one with no subject of its own collects
+        # whatever the model can reach. tag_run.py leaves them alone.
+        self.skip_fields = tuple(skip_fields or ())
 
     @classmethod
     def from_config(cls, path: str = "config.json") -> "Tracker":
@@ -38,7 +42,11 @@ class Tracker:
         missing = [k for k in ("server", "client_id", "secret", "user_id") if not cfg.get(k)]
         if missing:
             raise TrackerError(f"{path} is missing {missing}")
-        return cls(cfg["server"], cfg["client_id"], cfg["secret"], int(cfg["user_id"]))
+        skip = cfg.get("skip_fields") or ()
+        if not (isinstance(skip, (list, tuple)) and all(isinstance(f, str) and f.strip() for f in skip)):
+            raise TrackerError(f'{path}: "skip_fields" must be a list of box names, like ["notes"]')
+        return cls(cfg["server"], cfg["client_id"], cfg["secret"], int(cfg["user_id"]),
+                   skip_fields=skip)
 
     def _request(self, method: str, url: str, body: dict = None) -> dict:
         """`url` is the path and query, e.g. "/api/notes?user_id=1"."""

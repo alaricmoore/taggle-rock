@@ -12,6 +12,7 @@ Tag the tracker's notes with Qwen.
     python3 tag_run.py --dry-run --limit 5 --show
                                             ask Qwen and print the tags, send nothing
     python3 tag_run.py undo RUN_ID          remove everything one run tagged
+    python3 tag_run.py clear --yes          empty the tags of the boxes config.json skips
 
 Note text is never printed or saved here: only dates, boxes and tags. Tags go
 to the tracker in batches, so stopping a run (Ctrl-C) keeps what it had done.
@@ -95,7 +96,7 @@ class RunLog:
 
 def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, show=False,
         log_dir="runs", out=print, run_id=None, retag=False, trial=False,
-        model=None, notes_from=None):
+        model=None, notes_from=None, skip_fields=None):
     """Tag what needs tagging. Returns a summary dict (also printed).
 
     With `retag`, every note not already tagged with this vocabulary is asked
@@ -111,6 +112,11 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
     named_model = model is not None   # asked for by name, so pass it on
     model = model or qwen.MODEL
     notes = tracker.notes(since=since)
+    skip = tuple(skip_fields or ())
+    if skip:
+        before = len(notes)
+        notes = [n for n in notes if n["field"] not in skip]
+        skipped_boxes = before - len(notes)
     if notes_from:
         # You named the notes, so they are the run: asking whether they have
         # been tagged already would leave nothing to do.
@@ -128,6 +134,7 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
               "missing": 0, "invalid": 0}
     out(f"{run_id}: {len(todo)} note(s) to tag, vocabulary {vocab.version}, model {model},"
         f" prompt {qwen.prompt_id(vocab)}"
+        + (f" ({skipped_boxes} note(s) in {', '.join(skip)} skipped)" if skip else "")
         + (f" (from the notes graded in {notes_from})" if notes_from else "")
         + (f" (retag: {skipped} already done with this vocabulary)" if retag else "")
         + (" (trial: the log only, nothing is sent)" if trial else "")
@@ -200,9 +207,42 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
     return summary
 
 
+def clear(tracker, vocab, fields, log_dir="runs", out=print, run_id=None, model=None):
+    """Give every note in `fields` an empty set of tags, so what they had
+    leaves search. For a box whose tags are noise: one with no subject of its
+    own collects whatever the model can reach.
+
+    This is not an undo. The tags are replaced by nothing, and `undo` on this
+    run only unmarks the notes; it cannot bring back what they had."""
+    run_id = run_id or new_run_id()
+    model = model or qwen.MODEL
+    todo = [n for n in tracker.notes() if n["field"] in fields]
+    counts = {"cleared": 0, "stale": 0, "missing": 0, "invalid": 0}
+    out(f"{run_id}: clearing the tags of {len(todo)} note(s) in {', '.join(fields)}")
+
+    log = RunLog(log_dir, run_id)
+    try:
+        for start in range(0, len(todo), BATCH_SIZE):
+            pending = [{"date": n["date"], "field": n["field"], "note_sha256": n["sha256"], "tags": []}
+                       for n in todo[start:start + BATCH_SIZE]]
+            reply = tracker.post_tags(run_id, model, vocab.version, pending)
+            for sent, result in zip(pending, reply["results"]):
+                got = result["result"]
+                counts["cleared" if got == "tagged" else got] += 1
+                log.write(date=sent["date"], field=sent["field"], sha256=sent["note_sha256"],
+                          vocab=vocab.version, model=model, tags=[], result=got,
+                          cleared=True, error=result.get("error"))
+    finally:
+        log.close()
+
+    summary = {"run_id": run_id, "notes": len(todo), **counts}
+    out(", ".join(f"{k} {v}" for k, v in summary.items() if k != "run_id"))
+    return summary
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Tag the tracker's notes with Qwen.")
-    parser.add_argument("command", nargs="?", default="run", choices=["run", "undo"])
+    parser.add_argument("command", nargs="?", default="run", choices=["run", "undo", "clear"])
     parser.add_argument("run_id", nargs="?", help="for undo: the run to remove")
     parser.add_argument("--limit", type=int, help="tag at most this many notes")
     parser.add_argument("--since", help="only notes from this date (YYYY-MM-DD) on")
@@ -215,6 +255,8 @@ def main(argv=None) -> int:
     parser.add_argument("--model", help=f"the Ollama model to ask (default {qwen.MODEL})")
     parser.add_argument("--notes-from", metavar="RUN_ID",
                         help="only the notes you graded for that run")
+    parser.add_argument("--yes", action="store_true",
+                        help="for clear: yes, empty those tags (they don't come back)")
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--vocab", default="vocab.yaml")
     args = parser.parse_args(argv)
@@ -227,8 +269,17 @@ def main(argv=None) -> int:
             print(f"{args.run_id}: removed tags from {tracker.undo(args.run_id)} note(s)")
             return 0
         vocab = vocab_module.load(args.vocab)
+        if args.command == "clear":
+            if not tracker.skip_fields:
+                parser.error('nothing to clear: config.json has no "skip_fields"')
+            if not args.yes:
+                parser.error(f"clear empties the tags of {', '.join(tracker.skip_fields)} and they "
+                             "don't come back; say --yes if that's what you want")
+            clear(tracker, vocab, tracker.skip_fields, model=args.model)
+            return 0
         run(tracker, vocab, limit=args.limit, since=args.since, dry_run=args.dry_run, show=args.show,
-            retag=args.retag, trial=args.trial, model=args.model, notes_from=args.notes_from)
+            retag=args.retag, trial=args.trial, model=args.model, notes_from=args.notes_from,
+            skip_fields=tracker.skip_fields)
         return 0
     except (TrackerError, vocab_module.VocabError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)

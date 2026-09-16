@@ -110,6 +110,19 @@ class TestConfig(unittest.TestCase):
                                             "secret": SECRET, "user_id": 1}))
         self.assertEqual((t.server, t.client_id, t.user_id), ("https://x.example", "qwen", 1))
 
+    def test_skip_fields_are_read_and_default_to_none(self):
+        base = {"server": "https://x.example", "client_id": "qwen", "secret": SECRET, "user_id": 1}
+        self.assertEqual(Tracker.from_config(self.write(base)).skip_fields, ())
+        self.assertEqual(
+            Tracker.from_config(self.write({**base, "skip_fields": ["notes", "cycle_notes"]})).skip_fields,
+            ("notes", "cycle_notes"))
+
+    def test_skip_fields_that_is_not_a_list_of_names_is_a_tracker_error(self):
+        base = {"server": "https://x.example", "client_id": "qwen", "secret": SECRET, "user_id": 1}
+        for bad in ("notes", [""], [3]):
+            with self.subTest(bad=bad), self.assertRaises(TrackerError):
+                Tracker.from_config(self.write({**base, "skip_fields": bad}))
+
     def test_missing_keys_and_bad_json_are_tracker_errors(self):
         for content in [{"server": "https://x.example", "client_id": "qwen"}, "{not json,}"]:
             with self.subTest(content=content), self.assertRaises(TrackerError):

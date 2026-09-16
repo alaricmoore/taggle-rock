@@ -168,7 +168,10 @@ The Instruct weights are the default because they were measured against the
 Thinking ones on the same hand-graded notes: see `modelfiles/`.
 
 Put `server`, `client_id`, `secret` and `user_id` in `config.json`
-(gitignored), and start your vocabulary from the example:
+(gitignored). You can add `"skip_fields": ["notes"]` there for any box that
+isn't worth tagging: a box with no subject of its own collects whatever the
+model can reach, and those tags only make search noisier. Then start your
+vocabulary from the example:
 
 ```
 cp vocab.example.yaml vocab.yaml
@@ -186,6 +189,7 @@ python3 tag_run.py --retag                      after changing vocab.yaml
 python3 spot_check.py                           grade a sample by hand (own terminal window)
 python3 spot_check.py summary                   the numbers: counts only, safe to share
 python3 tag_run.py undo RUN_ID                  take a run back out
+python3 tag_run.py clear --yes                  empty the tags of the boxes you skip
 ```
 
 The full manual: `man -l man/taggle-rock.1`. A nightly systemd user timer is
