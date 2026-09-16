@@ -125,7 +125,8 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
         todo = todo[:limit]
     counts = {"answered": 0, "qwen_failed": 0, "tagged": 0, "trial": 0, "stale": 0,
               "missing": 0, "invalid": 0}
-    out(f"{run_id}: {len(todo)} note(s) to tag, vocabulary {vocab.version}, model {model}"
+    out(f"{run_id}: {len(todo)} note(s) to tag, vocabulary {vocab.version}, model {model},"
+        f" prompt {qwen.prompt_id(vocab)}"
         + (f" (from the notes graded in {notes_from})" if notes_from else "")
         + (f" (retag: {skipped} already done with this vocabulary)" if retag else "")
         + (" (trial: the log only, nothing is sent)" if trial else "")
@@ -148,14 +149,15 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
             for sent in pending:
                 counts["trial"] += 1
                 log.write(date=sent["date"], field=sent["field"], sha256=sent["note_sha256"],
-                          vocab=vocab.version, model=model,
+                          vocab=vocab.version, model=model, prompt=qwen.prompt_id(vocab),
                           tags=[t["tag"] for t in sent["tags"]], result="trial", error=None)
             return
         reply = tracker.post_tags(run_id, model, vocab.version, pending)
         for sent, result in zip(pending, reply["results"]):
             counts[result["result"]] += 1
             log.write(date=sent["date"], field=sent["field"], sha256=sent["note_sha256"],
-                      vocab=vocab.version, model=model, tags=[t["tag"] for t in sent["tags"]],
+                      vocab=vocab.version, model=model, prompt=qwen.prompt_id(vocab),
+                      tags=[t["tag"] for t in sent["tags"]],
                       result=result["result"], error=result.get("error"))
 
     try:

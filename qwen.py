@@ -10,6 +10,7 @@ and he is never asked how confident he is: his confidence ratings mean
 nothing, so they aren't collected.
 """
 
+import hashlib
 import json
 import urllib.error
 import urllib.request
@@ -33,9 +34,12 @@ def system_prompt(vocab) -> str:
         "same thing in other words, gets that tag.",
         "",
         "Rules:",
-        "- Tag only what the note itself says. Do not guess causes, diagnoses,",
-        "  or anything the note does not say.",
+        "- Every tag must be earned by words in the note. If you could not point",
+        "  to the words that gave you a tag, leave it out.",
+        "- Do not add what is merely likely, related, or usually true of this",
+        "  illness. No causes, diagnoses or consequences the note does not state.",
         "- A negated mention does not get the tag: \"no rash today\" is not rash.",
+        "- Fewer, well-earned tags beat a long list. Most notes need one to four.",
         "- If nothing in the vocabulary applies, return an empty list.",
         f"- At most {MAX_TAGS} tags. Answer with JSON only.",
         "",
@@ -48,6 +52,12 @@ def system_prompt(vocab) -> str:
                 words = ", ".join(vocab.words_for[tag])
                 lines.append(f"{tag}: {words}" if words else tag)
     return "\n".join(lines)
+
+
+def prompt_id(vocab) -> str:
+    """A short hash of the exact instructions. Run logs record it, because
+    comparing two runs only means something with the prompt held still."""
+    return hashlib.sha256(system_prompt(vocab).encode("utf-8")).hexdigest()[:8]
 
 
 def schema(vocab) -> dict:

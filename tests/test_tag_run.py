@@ -121,11 +121,13 @@ class TestWhatGetsAsked(RunTest):
         self.assertIn("5 note(s) to tag", self.lines[0])
         self.assertIn("retag: 1 already done with this vocabulary", self.lines[0])
 
-    def test_the_log_records_hash_and_vocabulary_for_retag(self):
+    def test_the_log_records_hash_vocabulary_model_and_prompt(self):
         note = make_note(1)
         self.run_tags(FakeTracker([note]))
         entry = self.log_entries()[0]
         self.assertEqual((entry["sha256"], entry["vocab"]), (note["sha256"], VOCAB.version))
+        self.assertEqual((entry["model"], entry["prompt"]),
+                         (qwen.MODEL, qwen.prompt_id(VOCAB)))
         self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version),
                          {(note["date"], "notes", note["sha256"])})
 

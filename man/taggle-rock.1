@@ -266,8 +266,10 @@ A starting vocabulary to copy. Replace it wholesale for notes that aren't a
 health diary; only the shape matters.
 .TP
 .I runs/RUN_ID.jsonl
-One line per note: date, box, the note's hash, the vocabulary version,
-tags and the tracker's result. No note text.
+One line per note: date, box, the note's hash, the vocabulary version, the
+model, a short hash of the instructions it was given, tags and the
+tracker's result. No note text. The model and instruction hash are what
+make two runs comparable.
 Readable only by you.
 .TP
 .I runs/RUN_ID.grades.jsonl

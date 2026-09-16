@@ -49,6 +49,18 @@ class TestPrompt(unittest.TestCase):
         self.assertIn("[body part]", prompt)
         self.assertEqual(prompt, qwen.system_prompt(VOCAB))
 
+    def test_the_rules_ask_for_tags_the_note_earned(self):
+        prompt = qwen.system_prompt(VOCAB)
+        self.assertIn("earned by words in the note", prompt)
+        self.assertIn("merely likely, related, or usually true", prompt)
+        self.assertIn("\"no rash today\" is not rash", prompt)
+
+    def test_prompt_id_changes_with_the_instructions_or_the_vocabulary(self):
+        other = vocab.parse("version: 1\nsymptom:\n  fatigue: [tired, wiped out]\n")
+        self.assertEqual(qwen.prompt_id(VOCAB), qwen.prompt_id(VOCAB))
+        self.assertNotEqual(qwen.prompt_id(VOCAB), qwen.prompt_id(other))
+        self.assertEqual(len(qwen.prompt_id(VOCAB)), 8)
+
     def test_field_labels(self):
         self.assertEqual(qwen.field_label("notes"), "general")
         self.assertEqual(qwen.field_label("rheumatic_notes"), "rheumatic")
