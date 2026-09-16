@@ -111,9 +111,11 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
     model = model or qwen.MODEL
     notes = tracker.notes(since=since)
     if notes_from:
+        # You named the notes, so they are the run: asking whether they have
+        # been tagged already would leave nothing to do.
         wanted = notes_graded_in(log_dir, notes_from)
-        notes = [n for n in notes if (n["date"], n["field"]) in wanted]
-    if retag:
+        todo = [n for n in notes if (n["date"], n["field"]) in wanted]
+    elif retag:
         done = tagged_with(log_dir, vocab.version)
         todo = [n for n in notes if (n["date"], n["field"], n["sha256"]) not in done]
     else:

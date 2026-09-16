@@ -129,6 +129,19 @@ class TestWhatGetsAsked(RunTest):
         self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version),
                          {(note["date"], "notes", note["sha256"])})
 
+    def test_notes_from_asks_about_those_notes_even_though_they_are_tagged(self):
+        # The point of --notes-from is measuring on notes you have judged, and
+        # those have been tagged by definition.
+        notes = [make_note(i, tagged=True) for i in range(1, 4)]
+        os.makedirs(self.log_dir)
+        with open(os.path.join(self.log_dir, "run-old.grades.jsonl"), "w") as f:
+            f.write(json.dumps({"date": notes[1]["date"], "field": "notes",
+                                "tags": {}, "missing": []}) + "\n")
+        asked = []
+        self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [],
+                      notes_from="run-old")
+        self.assertEqual(asked, [notes[1]["text"]])
+
     def test_notes_from_limits_the_run_to_the_notes_graded_for_another_run(self):
         notes = [make_note(i) for i in range(1, 6)]
         os.makedirs(self.log_dir)
