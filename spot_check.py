@@ -69,7 +69,7 @@ def latest_run(directory: str = RUN_DIR) -> str:
 def sampled(log_rows: list, seed: str) -> list:
     """The run's tagged notes in a shuffled order fixed by `seed`, so a rerun
     grades the same sample and a bigger --sample extends it."""
-    rows = [r for r in log_rows if r.get("result") == "tagged"]
+    rows = [r for r in log_rows if r.get("result") in ("tagged", "trial")]
     random.Random(seed).shuffle(rows)
     return rows
 
@@ -118,7 +118,7 @@ def grade_note(row: dict, text: str, where: str, ask_input, out) -> dict:
 def same_notes(log_rows: list, earlier_grades: list, out=print) -> list:
     """This run's rows for the notes graded in an earlier run, in the order
     they were graded there. A note this run didn't tag is left out and said."""
-    rows = {(r["date"], r["field"]): r for r in log_rows if r.get("result") == "tagged"}
+    rows = {(r["date"], r["field"]): r for r in log_rows if r.get("result") in ("tagged", "trial")}
     picked = []
     for g in earlier_grades:
         row = rows.get((g["date"], g["field"]))
@@ -183,7 +183,7 @@ def _pct(part: int, whole: int) -> str:
 def summarize(vocab, log_rows: list, grades: list) -> str:
     """The run's numbers and the grading so far. Counts only: no note text,
     no tag names, nothing you typed."""
-    tagged = [r for r in log_rows if r.get("result") == "tagged"]
+    tagged = [r for r in log_rows if r.get("result") in ("tagged", "trial")]
     failed = sum(1 for r in log_rows if r.get("result") == "qwen_failed")
     untagged = sum(1 for r in tagged if not r.get("tags"))
     tag_count = sum(len(r.get("tags") or []) for r in tagged)

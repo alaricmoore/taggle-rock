@@ -12,6 +12,9 @@ taggle-rock \- tag private free-text notes with a local language model
 .OP \-\-dry\-run
 .OP \-\-show
 .OP \-\-retag
+.OP \-\-trial
+.OP \-\-model NAME
+.OP \-\-notes\-from RUN_ID
 .OP \-\-config FILE
 .OP \-\-vocab FILE
 .YS
@@ -141,6 +144,24 @@ had tags or not. Use it after changing
 Each note keeps its old tags in search until its new ones arrive, so
 search is never left empty. Stopped with Ctrl\-C, running it again skips
 the notes already done with this vocabulary.
+.TP
+.B \-\-trial
+Ask the model and write the run log, but send nothing: the tags on the
+tracker are left alone.
+.B spot_check.py
+grades a trial log like any other run, so two models can be compared on the
+same notes without touching what search uses.
+.TP
+.BI \-\-model " NAME"
+Ask this Ollama model instead of the usual one. The run log and the tracker
+record which model tagged each note.
+.TP
+.BI \-\-notes\-from " RUN_ID"
+Only the notes you graded for that run. With
+.B \-\-trial
+and
+.BR \-\-model ,
+that is a like-for-like comparison on notes you have already judged.
 .SS draft_vocab.py
 .TP
 .BI \-\-limit " N"
@@ -301,6 +322,14 @@ python3 spot_check.py \-\-run run\-20260915\-093312
 python3 tag_run.py \-\-retag
 python3 spot_check.py \-\-run NEW_RUN_ID \-\-same\-notes\-as run\-20260915\-093312
 python3 spot_check.py summary \-\-run NEW_RUN_ID
+.EE
+Try another model on the notes you have already graded, without changing
+any tags:
+.PP
+.EX
+python3 tag_run.py \-\-trial \-\-model qwen\-instruct \-\-notes\-from run\-20260915\-093312
+python3 spot_check.py \-\-run TRIAL_RUN_ID \-\-same\-notes\-as run\-20260915\-093312
+python3 spot_check.py summary \-\-run TRIAL_RUN_ID
 .EE
 .SH BUGS
 Without

@@ -129,6 +129,43 @@ class TestWhatGetsAsked(RunTest):
         self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version),
                          {(note["date"], "notes", note["sha256"])})
 
+    def test_notes_from_limits_the_run_to_the_notes_graded_for_another_run(self):
+        notes = [make_note(i) for i in range(1, 6)]
+        os.makedirs(self.log_dir)
+        with open(os.path.join(self.log_dir, "run-old.grades.jsonl"), "w") as f:
+            for note in (notes[1], notes[3]):
+                f.write(json.dumps({"date": note["date"], "field": "notes",
+                                    "tags": {}, "missing": []}) + "\n")
+        asked = []
+        summary = self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [],
+                                notes_from="run-old")
+        self.assertEqual(asked, [notes[1]["text"], notes[3]["text"]])
+        self.assertEqual(summary["notes"], 2)
+
+    def test_a_trial_writes_the_log_but_sends_nothing(self):
+        tracker = FakeTracker([make_note(i) for i in range(1, 4)])
+        summary = self.run_tags(tracker, trial=True)
+        self.assertEqual(tracker.posts, [])
+        self.assertEqual((summary["trial"], summary["tagged"]), (3, 0))
+        entries = self.log_entries()
+        self.assertEqual([e["result"] for e in entries], ["trial"] * 3)
+        self.assertEqual(entries[0]["tags"], ["lymph nodes", "fatigue"])
+        self.assertTrue(any("nothing was sent" in line for line in self.lines))
+
+    def test_another_model_is_asked_and_written_down(self):
+        asked = []
+
+        def ask(vocab_, field, text, model=None):
+            asked.append(model)
+            return [("fatigue", "symptom")]
+
+        tracker = FakeTracker([make_note(1)])
+        self.run_tags(tracker, ask=ask, model="qwen-instruct")
+        self.assertEqual(asked, ["qwen-instruct"])
+        self.assertEqual(self.log_entries()[0]["model"], "qwen-instruct")
+        self.assertEqual(tracker.posts[0]["model"], "qwen-instruct")
+        self.assertIn("model qwen-instruct", self.lines[0])
+
     def test_limit_and_since(self):
         tracker = FakeTracker([make_note(i) for i in range(1, 11)])
         summary = self.run_tags(tracker, limit=4, since="2026-01-01")

@@ -177,6 +177,16 @@ class SpotCheckTest(unittest.TestCase):
         for private in ("SECRET-TEXT", "joints", "pain", "ankles", "swelling-typed-word"):
             self.assertNotIn(private, text)
 
+    def test_a_trial_run_can_be_graded_like_any_other(self):
+        notes = [make_note(1, ["joints"])]
+        with open(os.path.join(self.dir, "run-trial.jsonl"), "w") as f:
+            f.write(json.dumps({"date": notes[0]["date"], "field": "notes", "sha256": notes[0]["sha256"],
+                                "vocab": "v1", "model": "qwen-instruct", "tags": ["joints"],
+                                "result": "trial", "error": None}) + "\n")
+        grades = spot_check.grade(FakeTracker(notes), VOCAB, "run-trial", size=1, log_dir=self.dir,
+                                  ask_input=typed("y", ""), out=self.lines.append)
+        self.assertEqual(grades[0]["tags"], {"joints": True})
+
     def test_latest_run_ignores_grades_and_empty_logs(self):
         open(os.path.join(self.dir, "run-zzz.jsonl"), "w").close()
         with open(os.path.join(self.dir, "run-test.grades.jsonl"), "w") as f:
