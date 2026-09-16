@@ -225,10 +225,14 @@ def apply_decisions(vocab_path: str, decided: dict, out=print):
         return new
 
     old = vocab_module.parse(original)
+    # Owner-only, like runs/ and drafts/: a used vocabulary ends up quoting
+    # your notes. os.replace keeps the new file's mode.
     shutil.copy2(vocab_path, vocab_path + ".bak")
+    os.chmod(vocab_path + ".bak", 0o600)
     temporary = vocab_path + ".new"
     with open(temporary, "w", encoding="utf-8") as f:
         f.write(text)
+    os.chmod(temporary, 0o600)
     os.replace(temporary, vocab_path)
     words = sum(len(w) for w in new.words_for.values())
     out(f"vocab.yaml written: {len(new.tags)} tags and {words} words "

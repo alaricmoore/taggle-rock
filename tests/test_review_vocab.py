@@ -163,6 +163,12 @@ class ReviewTest(unittest.TestCase):
         entry = json.loads(self.read(self.decisions_path).splitlines()[0])
         self.assertEqual(entry["suggested"], "fatigue")
 
+    def test_the_vocabulary_and_its_backup_are_readable_only_by_their_owner(self):
+        os.chmod(self.vocab_path, 0o644)
+        self.review("y", "q")
+        self.assertEqual(stat.S_IMODE(os.stat(self.vocab_path).st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(os.stat(self.vocab_path + ".bak").st_mode), 0o600)
+
     def test_summary_is_counts_only(self):
         self.review("y", "n", "s", "n")
         text = review_vocab.summarize(self.draft_path, self.decisions_path)
