@@ -13,7 +13,7 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGE = os.path.join(ROOT, "man", "taggle-rock.1")
-SCRIPTS = ("tag_run.py", "draft_vocab.py", "spot_check.py")
+SCRIPTS = ("tag_run.py", "draft_vocab.py", "review_vocab.py", "spot_check.py")
 
 
 def read(path):

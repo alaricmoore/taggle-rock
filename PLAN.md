@@ -151,6 +151,18 @@ are in private-track `notes/auth-hardening.md`.
   python3 spot_check.py --sample 50      grade more; the first 30 are kept
   python3 spot_check.py summary          the numbers: run totals, % right, missed vs vocabulary gap
   ```
+- Reviewing the draft (2026-09-15): the first full draft had 227 suggested
+  tags and 948 words, far too much to hand-edit, so `review_vocab.py` shows
+  one suggestion at a time (most notes first) and writes `vocab.yaml` itself:
+  add, reject for good, skip, rename, recategorise, merge into an existing
+  tag, or edit the words. Decisions live in `drafts/decisions.jsonl`, so it
+  resumes; vocab.yaml is backed up to `.bak` and only written if it parses.
+
+  ```
+  python3 review_vocab.py --min-notes 5    the 94 tags seen in 5+ notes first
+  python3 review_vocab.py                  everything, most common first
+  python3 review_vocab.py summary          decided, rejected, left to do
+  ```
 - Nightly timer (written 2026-09-14, not yet enabled): `systemd/taggle-rock.timer`
   runs `tag_run.py` at 04:30, after the 04:00 backup pull, and catches up after
   sleep (Persistent=true). It waits for Ollama and only runs on mains power; a

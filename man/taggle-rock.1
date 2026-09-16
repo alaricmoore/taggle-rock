@@ -24,6 +24,12 @@ taggle-rock \- tag private free-text notes with a local language model
 .OP \-\-config FILE
 .OP \-\-vocab FILE
 .YS
+.SY "python3 review_vocab.py"
+.RB [ review | summary ]
+.OP \-\-min\-notes N
+.OP \-\-draft FILE
+.OP \-\-vocab FILE
+.YS
 .SY "python3 spot_check.py"
 .RB [ grade | summary ]
 .OP \-\-run RUN_ID
@@ -82,6 +88,21 @@ running it again carries on. Suggestions are checked: a phrase that is not
 really in the note is thrown out, known words are skipped, and a tag the
 tracker would refuse is dropped.
 .TP
+.BR "review_vocab.py " [ review ]
+Go through the draft's suggestions, most common first, and write
+.IR vocab.yaml .
+Each one can be added (y), rejected for good (n), skipped (s), renamed (r),
+moved to another category (c), merged into a tag you already have (m), or
+have its words edited (w). q saves and stops. Decisions go to
+.I drafts/decisions.jsonl
+as you make them, so running it again carries on, and a rejected suggestion
+is not offered again.
+.B It shows phrases from your notes,
+so use its own terminal window.
+.TP
+.B review_vocab.py summary
+How many suggestions are decided and how many are left. Counts only.
+.TP
 .BR "spot_check.py " [ grade ]
 Show you a sample of a run's notes with their tags, in your terminal, and
 record whether each tag is right and what is missing. The sample is fixed
@@ -131,6 +152,17 @@ notes.
 List a suggested tag only if it came up in
 .I N
 or more notes. Default 2, which hides one-off noise.
+.SS review_vocab.py
+.TP
+.BI \-\-min\-notes " N"
+Only offer suggestions that came up in
+.I N
+or more notes. Default 2. A high number is a good first pass: it puts the
+tags that would change search the most in front of you first.
+.TP
+.BI \-\-draft " FILE"
+The draft to review. Default
+.IR drafts/vocab_draft.yaml .
 .SS spot_check.py
 .TP
 .BI \-\-run " RUN_ID"
@@ -144,11 +176,12 @@ already graded and adds more.
 Grade the notes that were graded for an earlier run, with this run's tags:
 a fair before and after. Ignores
 .BR \-\-sample .
-.SS All commands
+.SS tag_run.py, draft_vocab.py and spot_check.py
 .TP
 .BI \-\-config " FILE"
 The tracker connection. Default
 .IR config.json .
+.SS All commands
 .TP
 .BI \-\-vocab " FILE"
 The vocabulary. Default
@@ -156,9 +189,9 @@ The vocabulary. Default
 .SH WORKFLOW
 .nf
 .RS
-draft_vocab.py ──► you edit vocab.yaml ──► tag_run.py
-      ▲                                        │
-      │                                        ▼
+draft_vocab.py ──► review_vocab.py ──► tag_run.py --retag
+      ▲             (writes vocab.yaml)         │
+      │                                         ▼
       └──── vocabulary gaps ◄──── spot_check.py, then summary
 .RE
 .fi
@@ -210,6 +243,14 @@ Readable only by you.
 .I drafts/vocab_draft.yaml\fR, \fPdrafts/cache.jsonl
 The vocabulary draft and the model's cached answers. They quote words
 from your notes. Readable only by you.
+.TP
+.I drafts/decisions.jsonl
+What you decided about each suggestion. Readable only by you.
+.TP
+.I vocab.yaml.bak
+The vocabulary as it was before
+.B review_vocab.py
+last wrote it.
 .TP
 .I systemd/taggle-rock.service\fR, \fPsystemd/taggle-rock.timer
 A nightly run at 04:30 that catches up after sleep and only runs on mains
