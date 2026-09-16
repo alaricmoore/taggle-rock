@@ -82,10 +82,39 @@ the note said. The 26% of notes with no tags aren't correctly empty; they
 fell into vocabulary gaps. So the next step is a bigger vocabulary, not a
 different model.
 
-**In progress:** `draft_vocab.py` is reading all the notes to suggest
-vocabulary. Then comes a `--retag` run with the new vocabulary, and a
-re-grade of *the same 30 notes* (`--same-notes-as`) for a fair before and
-after. Those numbers will be added here.
+## After one round of vocabulary work
+
+The model then read every note again (`draft_vocab.py`) and suggested
+vocabulary; 94 of those suggestions were accepted one at a time
+(`review_vocab.py`), taking the vocabulary from 38 tags to 104. Every note
+was tagged again (`--retag`), and **the same 30 notes** were graded again
+(`--same-notes-as`), so the two columns compare like with like:
+
+| | Starter vocabulary | After one round |
+|---|---|---|
+| Vocabulary | 38 tags, 120 words | 104 tags, 917 words |
+| Notes with no tags | 26% | **10%** |
+| Tags per note | 2.2 | **3.2** |
+| Tags right (same 30 notes) | 89% (55/62) | 90% (57/63) |
+| Notes missing a tag | 50% | **40%** |
+| Misses the vocabulary had no word for | 20 of 26 | 15 of 29 |
+| Misses the model made anyway | 6 of 26 | **14 of 29** |
+| Time | 54 min (2.5 s/note) | 112 min (5.0 s/note) |
+
+**Accuracy held and coverage improved**, and the bottleneck moved. At the
+start, most misses were the vocabulary's fault; now most are the model's,
+with the word available and unused. More vocabulary will help less from here
+than better prompting will.
+
+**Two honest caveats.** Across the corpus 246 notes came out with *fewer*
+tags than before, and on the graded sample severity tags fell from 12 to 5
+even though every one of them had been judged right. A longer vocabulary in
+the prompt pulled attention toward symptom and context tags. And of the
+notes left untagged, none were rightly empty in either run.
+
+Each note takes twice as long now, because the instructions carry 917 words
+instead of 120. The cost is paid once per note, in a batch, and searching
+afterwards is unaffected.
 
 ## What a tag looks like
 
