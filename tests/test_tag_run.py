@@ -97,19 +97,23 @@ class TestWhatGetsAsked(RunTest):
         self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [], retag=True)
         self.assertEqual(asked, [n["text"] for n in notes])
 
-    def test_retag_carries_on_after_notes_done_with_this_vocabulary(self):
-        notes = [make_note(i, tagged=True) for i in range(1, 7)]
+    def test_retag_carries_on_after_notes_done_with_this_setup(self):
+        notes = [make_note(i, tagged=True) for i in range(1, 8)]
         os.makedirs(self.log_dir)
+        done = {"vocab": VOCAB.version, "model": qwen.MODEL, "prompt": qwen.prompt_id(VOCAB),
+                "result": "tagged"}
         earlier = [
             {"date": notes[0]["date"], "field": "notes", "sha256": notes[0]["sha256"],
-             "vocab": VOCAB.version, "result": "tagged"},                       # done: skipped
+             **done},                                                           # done: skipped
             {"date": notes[1]["date"], "field": "notes", "sha256": notes[1]["sha256"],
-             "vocab": "v0-older", "result": "tagged"},                          # older vocabulary
+             **done, "vocab": "v0-older"},                                      # older vocabulary
             {"date": notes[2]["date"], "field": "notes", "sha256": "f" * 64,
-             "vocab": VOCAB.version, "result": "tagged"},                       # edited since
+             **done},                                                           # edited since
             {"date": notes[3]["date"], "field": "notes", "sha256": notes[3]["sha256"],
-             "vocab": VOCAB.version, "result": "stale"},                        # never stored
-            {"date": notes[4]["date"], "field": "notes", "result": "tagged"},  # old log format
+             **done, "result": "stale"},                                        # never stored
+            {"date": notes[4]["date"], "field": "notes", "result": "tagged"},   # old log format
+            {"date": notes[5]["date"], "field": "notes", "sha256": notes[5]["sha256"],
+             **done, "model": "another-model"},                                 # a different model
         ]
         with open(os.path.join(self.log_dir, "run-earlier.jsonl"), "w") as f:
             f.write("\n".join(json.dumps(e) for e in earlier) + '\n{"cut off')
@@ -118,8 +122,8 @@ class TestWhatGetsAsked(RunTest):
         asked = []
         self.run_tags(FakeTracker(notes), ask=lambda v, f, t: asked.append(t) or [], retag=True)
         self.assertEqual(asked, [n["text"] for n in notes[1:]])
-        self.assertIn("5 note(s) to tag", self.lines[0])
-        self.assertIn("retag: 1 already done with this vocabulary", self.lines[0])
+        self.assertIn("6 note(s) to tag", self.lines[0])
+        self.assertIn("retag: 1 already done with this vocabulary, model and prompt", self.lines[0])
 
     def test_the_log_records_hash_vocabulary_model_and_prompt(self):
         note = make_note(1)
@@ -128,8 +132,11 @@ class TestWhatGetsAsked(RunTest):
         self.assertEqual((entry["sha256"], entry["vocab"]), (note["sha256"], VOCAB.version))
         self.assertEqual((entry["model"], entry["prompt"]),
                          (qwen.MODEL, qwen.prompt_id(VOCAB)))
-        self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version),
+        self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version, qwen.MODEL,
+                                             qwen.prompt_id(VOCAB)),
                          {(note["date"], "notes", note["sha256"])})
+        self.assertEqual(tag_run.tagged_with(self.log_dir, VOCAB.version, "another-model",
+                                             qwen.prompt_id(VOCAB)), set())
 
     def test_notes_from_asks_about_those_notes_even_though_they_are_tagged(self):
         # The point of --notes-from is measuring on notes you have judged, and

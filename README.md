@@ -185,7 +185,7 @@ python3 tag_run.py --dry-run --limit 5 --show   try it: print tags, send nothing
 python3 tag_run.py                              tag everything new or edited
 python3 draft_vocab.py                          suggest vocabulary from your notes
 python3 review_vocab.py                         accept or reject suggestions, writes vocab.yaml
-python3 tag_run.py --retag                      after changing vocab.yaml
+python3 tag_run.py --retag                      after changing vocab.yaml, the model or the rules
 python3 spot_check.py                           grade a sample by hand (own terminal window)
 python3 spot_check.py summary                   the numbers: counts only, safe to share
 python3 tag_run.py undo RUN_ID                  take a run back out

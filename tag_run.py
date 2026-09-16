@@ -5,7 +5,7 @@ Tag the tracker's notes with Qwen.
     python3 tag_run.py --limit 10           just the first 10 of those
     python3 tag_run.py --since 2026-01-01   only notes from that date on
     python3 tag_run.py --retag              tag again every note not yet tagged with this
-                                            vocabulary (after changing vocab.yaml)
+                                            vocabulary, model and instructions
     python3 tag_run.py --trial --model NAME --notes-from RUN_ID
                                             try another model on the notes you graded in
                                             RUN_ID: writes a run log, sends nothing
@@ -58,10 +58,11 @@ def notes_graded_in(log_dir: str, run_id: str) -> set:
     return keys
 
 
-def tagged_with(log_dir: str, vocab_version: str) -> set:
+def tagged_with(log_dir: str, vocab_version: str, model: str, prompt: str) -> set:
     """(date, field, sha256) of every note a run log says was tagged with this
-    vocabulary. Lets --retag carry on after Ctrl-C instead of starting over.
-    Logs from before the version and hash were recorded count for nothing."""
+    vocabulary, this model and these instructions. Lets --retag carry on after
+    Ctrl-C instead of starting over, and makes a changed model or prompt a
+    reason to tag again. Logs that don't record all three count for nothing."""
     done = set()
     for path in glob.glob(os.path.join(log_dir, "run-*.jsonl")):
         if path.endswith(".grades.jsonl"):
@@ -70,7 +71,9 @@ def tagged_with(log_dir: str, vocab_version: str) -> set:
             for line in f:
                 try:
                     e = json.loads(line)
-                    if e.get("result") == "tagged" and e.get("vocab") == vocab_version and e.get("sha256"):
+                    if (e.get("result") == "tagged" and e.get("sha256")
+                            and e.get("vocab") == vocab_version
+                            and e.get("model") == model and e.get("prompt") == prompt):
                         done.add((e["date"], e["field"], e["sha256"]))
                 except (ValueError, KeyError, AttributeError):
                     continue   # a line cut off by a stopped run
@@ -123,7 +126,7 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
         wanted = notes_graded_in(log_dir, notes_from)
         todo = [n for n in notes if (n["date"], n["field"]) in wanted]
     elif retag:
-        done = tagged_with(log_dir, vocab.version)
+        done = tagged_with(log_dir, vocab.version, model, qwen.prompt_id(vocab))
         todo = [n for n in notes if (n["date"], n["field"], n["sha256"]) not in done]
     else:
         todo = needs_tags(notes)
@@ -136,7 +139,7 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
         f" prompt {qwen.prompt_id(vocab)}"
         + (f" ({skipped_boxes} note(s) in {', '.join(skip)} skipped)" if skip else "")
         + (f" (from the notes graded in {notes_from})" if notes_from else "")
-        + (f" (retag: {skipped} already done with this vocabulary)" if retag else "")
+        + (f" (retag: {skipped} already done with this vocabulary, model and prompt)" if retag else "")
         + (" (trial: the log only, nothing is sent)" if trial else "")
         + (" (dry run: nothing is sent)" if dry_run else ""))
 

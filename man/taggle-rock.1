@@ -148,9 +148,11 @@ Ask the model but send nothing and write no log.
 Print each note's tags (never its text).
 .TP
 .B \-\-retag
-Tag again every note not yet tagged with the current vocabulary, whether it
-had tags or not. Use it after changing
-.IR vocab.yaml .
+Tag again every note not yet tagged with the current vocabulary, model and
+instructions, whether it had tags or not. Use it after changing
+.IR vocab.yaml ,
+the model, or the rules in
+.IR qwen.py .
 Each note keeps its old tags in search until its new ones arrive, so
 search is never left empty. Stopped with Ctrl\-C, running it again skips
 the notes already done with this vocabulary.
