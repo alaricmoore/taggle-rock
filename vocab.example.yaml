@@ -1,4 +1,11 @@
-# taggle-rock vocabulary. You own this file; Qwen may only use tags listed here.
+# An example vocabulary, to start your own:
+#
+#     cp vocab.example.yaml vocab.yaml
+#
+# vocab.yaml is yours and stays on your machine (it's gitignored): it fills up
+# with words from your own notes, which is nobody else's business. This example
+# is a health diary's starting skeleton. For a maintenance log or a research
+# notebook, replace the lot; only the shape matters.
 #
 # Under each category, one canonical tag per line, then the words that mean
 # it. Search shows the canonical tag, so "glands", "nodes" and "neck lumps"
@@ -12,8 +19,9 @@
 # merging, removing). Adding words or new tags doesn't need it. Every run
 # records the version it used, so a bad vocabulary run can be undone.
 #
-# This is a starting skeleton, not a finished list. The next step is for Qwen
-# to draft candidates from the words in your own notes, and for you to edit.
+# Don't write this by hand for long: run draft_vocab.py to have the model
+# suggest tags and words from your own notes, then review_vocab.py to accept
+# or reject them one at a time.
 
 version: 1
 

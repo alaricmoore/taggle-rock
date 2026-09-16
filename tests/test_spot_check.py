@@ -185,7 +185,7 @@ class SpotCheckTest(unittest.TestCase):
 
     def test_summary_command_needs_no_tracker(self):
         cwd = os.getcwd()
-        vocab_path = os.path.join(cwd, "vocab.yaml")
+        vocab_path = os.path.join(cwd, "vocab.example.yaml")
         os.makedirs(os.path.join(self.dir, "runs"))
         os.replace(os.path.join(self.dir, "run-test.jsonl"), os.path.join(self.dir, "runs", "run-test.jsonl"))
         os.chdir(self.dir)

@@ -137,7 +137,14 @@ ollama create qwen-local -f qwen-local.Modelfile
 ```
 
 Put `server`, `client_id`, `secret` and `user_id` in `config.json`
-(gitignored). Then:
+(gitignored), and start your vocabulary from the example:
+
+```
+cp vocab.example.yaml vocab.yaml
+```
+
+`vocab.yaml` is gitignored too. It fills up with words from your own notes,
+so it belongs to you, not to this repo. Then:
 
 ```
 python3 tag_run.py --dry-run --limit 5 --show   try it: print tags, send nothing
@@ -163,7 +170,7 @@ taggle-rock/
 ├── spot_check.py       grade a sample by hand; summary numbers
 ├── qwen.py             prompts, JSON schemas and answer checks (Ollama)
 ├── vocab.py            load and check vocab.yaml
-├── vocab.yaml          the vocabulary: yours to edit
+├── vocab.example.yaml  a starting vocabulary: copy it to vocab.yaml
 ├── tracker.py          the SardineTracker source: signed requests
 ├── api_signing.py      HMAC request signing, shared with SardineTracker
 ├── man/taggle-rock.1   the manual page
@@ -172,9 +179,10 @@ taggle-rock/
 └── PLAN.md             design notes and decisions, as they happened
 ```
 
-Gitignored and never committed: `config.json` (the secret), `runs/` (run
-logs and grades: dates, sections and tags), and `drafts/` (vocabulary drafts,
-which quote words from your notes).
+Gitignored and never committed: `config.json` (the secret), `vocab.yaml`
+(your vocabulary, which ends up quoting your notes), `runs/` (run logs and
+grades: dates, sections and tags), and `drafts/` (vocabulary drafts and the
+model's cached answers).
 
 ## License
 

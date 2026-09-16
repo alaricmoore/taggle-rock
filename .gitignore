@@ -7,3 +7,11 @@ __pycache__/
 
 # Vocabulary drafts and their cache: words quoted from your notes.
 drafts/
+
+# Your vocabulary: it fills with words from your own notes. Start it with
+#   cp vocab.example.yaml vocab.yaml
+vocab.yaml
+
+# review_vocab.py's backup of the vocabulary, and its half-written file.
+vocab.yaml.bak
+vocab.yaml.new
