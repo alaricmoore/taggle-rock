@@ -108,6 +108,7 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
     graded for an earlier run. Together they compare two models on the same
     notes: spot_check.py grades a trial log like any other run."""
     run_id = run_id or new_run_id()
+    named_model = model is not None   # asked for by name, so pass it on
     model = model or qwen.MODEL
     notes = tracker.notes(since=since)
     if notes_from:
@@ -164,7 +165,7 @@ def run(tracker, vocab, ask=qwen.ask, limit=None, since=None, dry_run=False, sho
         for i, note in enumerate(todo, 1):
             where = f"[{i}/{len(todo)}] {note['date']} {qwen.field_label(note['field'])}"
             try:
-                tags = ask(vocab, note["field"], note["text"], model=model) if model != qwen.MODEL \
+                tags = ask(vocab, note["field"], note["text"], model=model) if named_model \
                     else ask(vocab, note["field"], note["text"])
             except qwen.QwenError as e:
                 counts["qwen_failed"] += 1

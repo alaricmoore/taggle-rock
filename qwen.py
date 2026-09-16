@@ -1,5 +1,5 @@
 """
-Asking qwen-local for a note's tags, through Ollama on this laptop.
+Asking the local model for a note's tags, through Ollama on this laptop.
 
 Nothing here leaves the laptop: Ollama listens on localhost only.
 
@@ -16,7 +16,10 @@ import urllib.error
 import urllib.request
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen-local"
+# Instruct, not the Thinking weights: graded on the same 30 notes, with the
+# same vocabulary and rules, it was right on 50 of 54 tags and missed nothing,
+# against 47 of 53 with 6 notes missing something. See modelfiles/.
+MODEL = "qwen-instruct"
 MAX_TAGS = 20   # the tracker's limit per note
 
 

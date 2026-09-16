@@ -1,0 +1,27 @@
+# The model taggle-rock asks by default.
+#
+#   ollama pull qwen3:30b-a3b-instruct-2507-q4_K_M
+#   ollama create qwen-instruct -f modelfiles/qwen-instruct.Modelfile
+#
+# This makes a new manifest pointing at the same weights: it does not copy
+# 18 GB. Cheap to rebuild, cheap to throw away.
+#
+# Why the Instruct weights and not Thinking: graded by hand on the same 30
+# notes, with the same vocabulary and the same rules, Instruct was right on
+# 50 of 54 tags and missed nothing, against 47 of 53 with 6 of 24 notes
+# missing something. It costs about 8.6 seconds a note against 5.0.
+#
+# No SYSTEM block on purpose: taggle-rock sends its own instructions with
+# every request, and anything here would only compete with them.
+
+FROM qwen3:30b-a3b-instruct-2507-q4_K_M
+
+# The physical core count of the machine this was measured on. Ollama's
+# default uses every thread, which was 37% slower there: SMT siblings halve
+# each core's cache. Measure your own before trusting this number.
+PARAMETER num_thread 6
+
+# Ollama defaults to 4096 and silently drops the oldest text past it. The
+# vocabulary alone can run to hundreds of words, and it is sent with every
+# note, so the instructions would be the first thing to fall out of view.
+PARAMETER num_ctx 16384

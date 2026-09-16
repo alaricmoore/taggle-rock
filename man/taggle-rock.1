@@ -295,11 +295,20 @@ power. Copy to
 to use.
 .SH ENVIRONMENT
 The model is
-.B qwen-local
+.B qwen-instruct
 through Ollama at
 .IR http://localhost:11434 .
 Both are set in
-.IR qwen.py .
+.IR qwen.py ,
+and
+.B \-\-model
+asks a different one for a single run. Build it with
+.PP
+.EX
+ollama create qwen\-instruct \-f modelfiles/qwen\-instruct.Modelfile
+.EE
+.PP
+The Modelfile says why those weights, with the measurements.
 Ollama must be running:
 .BR "systemctl \-\-user start ollama" .
 .SH EXIT STATUS

@@ -160,10 +160,12 @@ You need Python 3 with PyYAML, [Ollama](https://ollama.com), and a
 SardineTracker server with the tags API and a client secret for taggle-rock.
 
 ```
-ollama pull qwen3:30b-a3b
-printf 'FROM qwen3:30b-a3b\nPARAMETER num_ctx 16384\n' > qwen-local.Modelfile
-ollama create qwen-local -f qwen-local.Modelfile
+ollama pull qwen3:30b-a3b-instruct-2507-q4_K_M
+ollama create qwen-instruct -f modelfiles/qwen-instruct.Modelfile
 ```
+
+The Instruct weights are the default because they were measured against the
+Thinking ones on the same hand-graded notes: see `modelfiles/`.
 
 Put `server`, `client_id`, `secret` and `user_id` in `config.json`
 (gitignored), and start your vocabulary from the example:
@@ -202,6 +204,7 @@ taggle-rock/
 ├── vocab.example.yaml  a starting vocabulary: copy it to vocab.yaml
 ├── tracker.py          the SardineTracker source: signed requests
 ├── api_signing.py      HMAC request signing, shared with SardineTracker
+├── modelfiles/         the Ollama model taggle-rock asks, and why that one
 ├── man/taggle-rock.1   the manual page
 ├── systemd/            nightly timer (catches up after sleep, mains power only)
 ├── tests/              63 tests: python3 -m unittest discover -s tests -t .

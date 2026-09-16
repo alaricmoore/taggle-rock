@@ -194,7 +194,7 @@ class TestSending(RunTest):
         summary = self.run_tags(tracker)
         self.assertEqual([len(p["notes"]) for p in tracker.posts], [20, 20, 5])
         self.assertEqual({(p["run_id"], p["model"], p["vocab_version"]) for p in tracker.posts},
-                         {("run-test", "qwen-local", VOCAB.version)})
+                         {("run-test", qwen.MODEL, VOCAB.version)})
         first = tracker.posts[0]["notes"][0]
         self.assertEqual(first["note_sha256"], make_note(1)["sha256"])
         self.assertEqual(first["tags"], [{"tag": "lymph nodes", "category": "body_part"},

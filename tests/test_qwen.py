@@ -96,7 +96,7 @@ class TestAsk(unittest.TestCase):
         req = urlopen.call_args.args[0]
         self.assertEqual(req.full_url, "http://localhost:11434/api/chat")
         body = json.loads(req.data)
-        self.assertEqual(body["model"], "qwen-local")
+        self.assertEqual(body["model"], qwen.MODEL)
         self.assertIs(body["think"], False)
         self.assertIs(body["stream"], False)
         self.assertEqual(body["format"], qwen.schema(VOCAB))
