@@ -116,6 +116,27 @@ Each note takes twice as long now, because the instructions carry 917 words
 instead of 120. The cost is paid once per note, in a batch, and searching
 afterwards is unaffected.
 
+### Correction: those accuracy figures are too kind
+
+Both percentages above come from grading **the same 30 notes** over and
+over. A later run, with a different model and stricter rules, was graded on
+**30 notes that had never been looked at**: it scored **67% of tags right**,
+against the 93% the repeatedly-graded sample suggested for that same run.
+
+Grading notes you have already judged twice is not a fair test, and this is
+what that costs. The honest position today:
+
+- **Coverage is the solid result.** Notes left with no tags went 26% → 10% →
+  3% across the three full runs, and on the fresh sample only 1 note in 30
+  was missing anything at all. That trend is measured on the whole corpus,
+  not a sample.
+- **Precision is unsettled.** The fresh figure is 67%, and 19 of those 30
+  notes were tagged perfectly — the wrong tags cluster on a few notes, with
+  intensity words like "mild" the worst offenders. The older model has no
+  fresh figure yet, so the two are not comparable.
+- This page will be rewritten once both models have been graded on notes
+  neither of us has seen.
+
 ## What a tag looks like
 
 These notes are invented. With this in `vocab.yaml`:
