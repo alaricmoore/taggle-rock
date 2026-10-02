@@ -1,0 +1,28 @@
+# Boober: the Fraggle who checks the Doozers' work.
+#
+#   ollama pull gpt-oss:120b
+#   ollama create boober -f modelfiles/boober.Modelfile
+#
+# A grader, not a tagger. gpt-oss:120b is a mixture of experts (~5B of 120B
+# parameters active per token), so it is slow next to qwen but far quicker
+# than a dense 70B. It comes from a different family than the Doozer on
+# purpose: a grader from the same family shares its blind spots and agrees
+# with its mistakes.
+#
+# Boober reads notes, so Boober never gets the web. The web is for Uncle
+# Traveling Matt, who never sees a note.
+#
+# Not trusted until calibrated: grade 30 notes Alaric has already graded by
+# hand, and compare, before using it to grade anything new.
+
+FROM gpt-oss:120b
+
+# Ollama's default for this model was the full 131072. The context's memory
+# is reserved up front: at 128K, ollama ps showed 71 GB against 65 GB of
+# weights, and 6% of it on the CPU. A note plus the vocabulary fits easily
+# in 16K, and the memory freed goes back to the GPU.
+PARAMETER num_ctx 16384
+
+# Whatever doesn't fit in the 740M's 62 GB of GTT runs on the CPU, on the
+# same 6 physical cores the Doozer's Modelfile was measured on.
+PARAMETER num_thread 6
