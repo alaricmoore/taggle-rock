@@ -241,6 +241,53 @@ class TestFresh(TrackerTest):
         self.assertEqual(self.fresh(size=2), everything[:2])
 
 
+class TestRun(TrackerTest):
+    def write_log(self, run_id, rows):
+        with open(os.path.join(self.dir, f"{run_id}.jsonl"), "w") as f:
+            for r in rows:
+                f.write(json.dumps(r) + "\n")
+
+    def row(self, day, tags, result="trial", text=None):
+        return {"date": day, "field": "neuro_notes", "result": result, "tags": tags,
+                "sha256": sha(text or self.NOTES[(day, "neuro_notes")])}
+
+    def test_a_runs_notes_with_the_tags_it_gave_them(self):
+        self.write_log("run-t", [self.row("2026-01-02", ["pain"]), self.row("2026-01-03", [], result="tagged")])
+        self.assertEqual(boober_grade.run_items("run-t", self.texts, self.dir), [
+            {"date": "2026-01-02", "field": "neuro_notes", "tags": ["pain"], "source": "run-t"},
+            {"date": "2026-01-03", "field": "neuro_notes", "tags": [], "source": "run-t"}])
+
+    def test_failed_notes_and_notes_edited_since_are_left_out(self):
+        self.write_log("run-t", [self.row("2026-01-02", [], result="qwen_failed"),
+                                 self.row("2026-01-03", ["fatigue"], text="older text"),
+                                 {"date": "2026-01-04", "field": "neuro_notes", "result": "qwen_failed",
+                                  "error": "x"}])
+        self.assertEqual(boober_grade.run_items("run-t", self.texts, self.dir), [])
+
+    def test_compare_is_before_and_after_on_the_notes_graded_both_times(self):
+        def write(name, rows):
+            with open(os.path.join(self.dir, name), "w") as f:
+                for r in rows:
+                    f.write(json.dumps({"field": "neuro_notes", **r}) + "\n")
+        write("boober-fresh.grades.jsonl", [
+            {"date": "2026-01-02", "tags": {"joints": True, "pain": False, "mild": False}, "missing": ["fatigue"]},
+            {"date": "2026-01-03", "tags": {}, "missing": ["fatigue"]},
+            {"date": "2026-01-05", "tags": {"joints": False}, "missing": []},   # not in the run: left out
+        ])
+        write("boober-run-t.grades.jsonl", [
+            {"date": "2026-01-02", "tags": {"joints": True, "pain": True}, "missing": []},
+            {"date": "2026-01-03", "tags": {"fatigue": True}, "missing": []},
+        ])
+        text = boober_grade.compare("run-t", self.dir)
+        self.assertIn("run-t against the fresh grades: 2 notes graded both times", text)
+        self.assertIn("before 1 of 3 tags right (33%), 1.5 tags per note, 1 notes untagged, "
+                      "2 missing something (100%)", text)
+        self.assertIn("after  3 of 3 tags right (100%), 1.5 tags per note, 0 notes untagged, "
+                      "0 missing something (0%)", text)
+        for private in ("SECRET-TEXT", "joints", "pain", "fatigue"):
+            self.assertNotIn(private, text)
+
+
 class TestGradeAll(TrackerTest):
     ITEMS = [{"date": "2026-01-02", "field": "neuro_notes", "tags": ["joints", "pain"], "source": "run-a"},
              {"date": "2026-01-03", "field": "neuro_notes", "tags": ["fatigue"], "source": "run-a"}]

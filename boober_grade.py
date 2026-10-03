@@ -4,6 +4,12 @@ Boober grades the Doozer's tags, so you only have to look where he disagrees.
     python3 boober_grade.py                 calibration first, then up to 400 fresh notes
     python3 boober_grade.py --fresh 100     fewer fresh notes
     python3 boober_grade.py summary         how far Boober agrees with you: counts only
+    python3 boober_grade.py --run RUN_ID --vocab V
+                                            grade a tag run (say a --trial with a new
+                                            vocabulary V), then compare it with the
+                                            fresh grades: the Doozer before and after
+    python3 boober_grade.py summary --run RUN_ID
+                                            that comparison again
 
 Boober is not trusted until he has been compared with you. So he grades the
 calibration set first: every note you graded by hand with spot_check.py,
@@ -213,6 +219,23 @@ def fresh_items(db_path: str, texts: dict, user_id: int, skip_fields: set, size:
     return items[:size]
 
 
+def run_items(run_id: str, texts: dict, directory: str = RUN_DIR) -> list:
+    """The notes a tag run (often a --trial) tagged, with the tags it gave them,
+    if the text is unchanged since that run."""
+    items = []
+    for row in read_jsonl(os.path.join(directory, f"{run_id}.jsonl")):
+        text = texts.get((row.get("date"), row.get("field")))
+        if row.get("result") not in ("tagged", "trial") or text is None \
+                or hashlib.sha256(text.encode("utf-8")).hexdigest() != row.get("sha256"):
+            continue
+        items.append({"date": row["date"], "field": row["field"], "tags": list(row["tags"]), "source": run_id})
+    return items
+
+
+def run_grades_path(run_id: str, directory: str = RUN_DIR) -> str:
+    return os.path.join(directory, f"boober-{run_id}.grades.jsonl")
+
+
 def key(item: dict) -> tuple:
     return item["date"], item["field"], item["source"]
 
@@ -292,10 +315,35 @@ def summarize(vocab, directory: str = RUN_DIR) -> str:
     ])
 
 
+def _scores(grades: list) -> dict:
+    marks = [ok for g in grades for ok in g["tags"].values()]
+    return {"notes": len(grades), "tags": len(marks), "right": sum(marks),
+            "untagged": sum(1 for g in grades if not g["tags"]),
+            "missing": sum(1 for g in grades if g["missing"])}
+
+
+def compare(run_id: str, directory: str = RUN_DIR) -> str:
+    """Boober's grades of a run against his fresh grades, on the notes both
+    cover: the Doozer before and after. Counts only."""
+    before = {(g["date"], g["field"]): g for g in read_jsonl(os.path.join(directory, os.path.basename(FRESH)))}
+    after = {(g["date"], g["field"]): g for g in read_jsonl(run_grades_path(run_id, directory))}
+    both = sorted(set(before) & set(after))
+    rows = []
+    for label, grades in (("before", before), ("after", after)):
+        s = _scores([grades[k] for k in both])
+        rows.append(f"  {label:6} {s['right']} of {s['tags']} tags right ({_pct(s['right'], s['tags'])}), "
+                    f"{s['tags'] / s['notes'] if s['notes'] else 0:.1f} tags per note, "
+                    f"{s['untagged']} notes untagged, {s['missing']} missing something "
+                    f"({_pct(s['missing'], s['notes'])})")
+    return "\n".join([f"{run_id} against the fresh grades: {len(both)} notes graded both times"] + rows)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Boober grades the Doozer's tags.")
     parser.add_argument("command", nargs="?", default="grade", choices=["grade", "summary"])
     parser.add_argument("--fresh", type=int, default=DEFAULT_FRESH, help="fresh notes after calibration")
+    parser.add_argument("--run", metavar="RUN_ID",
+                        help="grade that tag run's notes instead, and compare with the fresh grades")
     parser.add_argument("--think", default=THINK, choices=["low", "medium", "high"])
     parser.add_argument("--db", help="tracker database to read (default: the newest backup)")
     parser.add_argument("--config", default="config.json")
@@ -304,7 +352,7 @@ def main(argv=None) -> int:
     try:
         vocab = vocab_module.load(args.vocab)
         if args.command == "summary":
-            print(summarize(vocab))
+            print(compare(args.run) if args.run else summarize(vocab))
             return 0
         with open(args.config, encoding="utf-8") as f:
             config = json.load(f)
@@ -312,6 +360,10 @@ def main(argv=None) -> int:
         fields = {g["field"] for _, g in human_grades()} | set(qwen_fields(db_path))
         texts = note_texts(db_path, config["user_id"], fields)
         print(f"reading {db_path}, prompt {prompt_id(vocab)}, think {args.think}", flush=True)
+        if args.run:
+            grade_all(vocab, run_items(args.run, texts), texts, run_grades_path(args.run), args.run, args.think)
+            print(compare(args.run), flush=True)
+            return 0
         grade_all(vocab, calibration_items(texts), texts, CALIBRATION, "calibration", args.think)
         grade_all(vocab, fresh_items(db_path, texts, config["user_id"], set(config.get("skip_fields", [])),
                                      args.fresh), texts, FRESH, "fresh", args.think)
