@@ -20,7 +20,9 @@ symptom:
 
 class TestVocab(unittest.TestCase):
     def test_the_shipped_vocabulary_loads(self):
-        v = vocab.load("vocab.yaml")
+        # vocab.example.yaml, not vocab.yaml: yours is gitignored, and its
+        # version moves on as you edit it.
+        v = vocab.load("vocab.example.yaml")
         self.assertTrue(v.version.startswith("v1-"))
         self.assertIn("lymph nodes", v.tags)
         self.assertEqual(v.category_of["lymph nodes"], "body_part")

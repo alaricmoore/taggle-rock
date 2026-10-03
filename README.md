@@ -137,6 +137,46 @@ what that costs. The honest position today:
 - This page will be rewritten once both models have been graded on notes
   neither of us has seen.
 
+## Boober 0.1: a second model grades the first
+
+Grading by hand is slow, and 30 notes at a time gave figures that swung
+from 93% to 67%. So a second, bigger local model grades instead:
+**Boober**, gpt-oss:120b (`modelfiles/boober.Modelfile`), from a different
+family than the Doozer on purpose, so he doesn't share its blind spots.
+Boober reads notes, so he never gets the web. `boober_grade.py` marks each
+tag right or wrong and lists vocabulary tags the note earned but didn't
+get. Nothing is sent anywhere: notes come from a laptop backup, read-only.
+
+**Checked against the author first.** On 120 hand-graded notes (335 tags)
+Boober agreed 71% of the time, kappa 0.37: fair, not great. But the author
+agreed with *herself* only 76% of the time on the 85 tags she graded
+twice, so Boober comes close to the ceiling a human grader sets. Agreement
+was high on body parts (90%) and symptoms (77%) and a coin flip on context
+(42%): the fuzzy tags are fuzzy for everyone.
+
+**Then he graded 400 fresh notes,** and the wrong tags pointed at the
+vocabulary rather than the model: duplicate tags (numb, numbness, tingles,
+tingling), words meaning the opposite ("energetic" under fatigue, "slept
+well" under poor sleep), and tags every note earns (`lupus`, `symptom`).
+Vocabulary v2 merged, deleted and pruned: 104 tags to 85, 917 words to 815.
+The Doozer tagged the same 400 notes again with it, and Boober graded both:
+
+| Same 400 notes, graded by Boober | v1 | v2 |
+|---|---|---|
+| Tags right | 62% (667/1074) | 63% (624/986) |
+| Notes missing a tag | 35% | **23%** |
+| Notes with no tags | 12 | 12 |
+| Tags per note | 2.7 | 2.5 |
+
+A third fewer notes miss something, at no cost in precision. One caveat:
+Boober graded each run against its own vocabulary, so part of the gain is
+that the questions got clearer, which was the point. Precision is still
+about 62%; the wrong tags that remain aren't duplicates, so the next lever
+is sharper rules, most likely for severity and context.
+
+Boober is slow (about 80 s a note), so he grades samples overnight; the
+Doozer still does the tagging.
+
 ## What a tag looks like
 
 These notes are invented. With this in `vocab.yaml`:
@@ -224,15 +264,16 @@ taggle-rock/
 ├── draft_vocab.py      suggest vocabulary from your notes, checked by rules
 ├── review_vocab.py     go through the suggestions and write vocab.yaml
 ├── spot_check.py       grade a sample by hand; summary numbers
+├── boober_grade.py     Boober grades a sample; agreement; before and after
 ├── qwen.py             prompts, JSON schemas and answer checks (Ollama)
 ├── vocab.py            load and check vocab.yaml
 ├── vocab.example.yaml  a starting vocabulary: copy it to vocab.yaml
 ├── tracker.py          the SardineTracker source: signed requests
 ├── api_signing.py      HMAC request signing, shared with SardineTracker
-├── modelfiles/         the Ollama model taggle-rock asks, and why that one
+├── modelfiles/         the Ollama models: the Doozer that tags, Boober who grades
 ├── man/taggle-rock.1   the manual page
 ├── systemd/            nightly timer (catches up after sleep, mains power only)
-├── tests/              63 tests: python3 -m unittest discover -s tests -t .
+├── tests/              113 tests: python3 -m unittest discover -s tests -t .
 └── PLAN.md             design notes and decisions, as they happened
 ```
 
